@@ -4,490 +4,865 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Neuro Trade</title>
+<meta name="description" content="El cerebro virtual de un bot de trading, en vivo y en 3D.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@400;500;600;700&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
 <style>
 :root {
-  --bg: #0e1116; --panel: #161b22; --panel2: #1c232d; --line: #2a3340; --text: #e6edf3;
-  --muted: #8b98a8; --sube: #2ea36b; --baja: #e5534b; --ambar: #d4a72c; --acento: #6aa9ff;
-  --neutro: #6e7b8b; --radio: 12px;
+  --bg: #020611; --bg2: #061024; --bg3: #0b1b38;
+  --line: rgba(63, 210, 255, 0.2); --line2: rgba(63, 210, 255, 0.45);
+  --text: #e4f7ff; --muted: #8fb6cf; --dim: #5d84a3;
+  --sube: #3fd2ff; --baja: #ff7a33; --ambar: #ffc04d; --acento: #3fd2ff;
+  --glow: 0 0 18px rgba(63, 210, 255, 0.35);
+  --display: "Rajdhani", ui-sans-serif, sans-serif;
+  --titulo: "Orbitron", "Rajdhani", sans-serif;
+  --num: "Azeret Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-header { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 12px;
-  align-items: center; padding: 12px 20px; background: rgba(14,17,22,.92);
-  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-header h1 { margin: 0; font-size: 22px; letter-spacing: .2px; }
-.vivo { width: 9px; height: 9px; border-radius: 50%; background: var(--sube); }
-.vivo.caido { background: var(--baja); }
-.muted { color: var(--muted); }
-.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
-.chip { font-size: 12px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
-.chip.ok { color: var(--sube); border-color: rgba(46,163,107,.4); }
-.chip.mal { color: var(--baja); border-color: rgba(229,83,75,.4); }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { background: transparent; color: var(--muted); border: 0; padding: 6px 12px; cursor: pointer; font: inherit; }
-.seg button.on { background: var(--panel2); color: var(--text); }
-main { max-width: 1320px; margin: 0 auto; padding: 18px 20px 60px; display: grid; gap: 16px;
-  grid-template-columns: repeat(12, 1fr); }
-section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radio);
-  padding: 16px; min-width: 0; }
-section h2 { margin: 0 0 4px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
-.ayuda { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; }
-.c12 { grid-column: span 12; } .c8 { grid-column: span 8; } .c7 { grid-column: span 7; }
-.c6 { grid-column: span 6; } .c5 { grid-column: span 5; } .c4 { grid-column: span 4; }
-@media (max-width: 980px) { .c8, .c7, .c6, .c5, .c4 { grid-column: span 12; } }
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.tab { border: 1px solid var(--line); background: var(--panel2); color: var(--muted); border-radius: 8px;
-  padding: 5px 10px; cursor: pointer; font: inherit; font-size: 13px; }
-.tab.on { color: var(--text); border-color: var(--acento); }
-.pensando { display: grid; grid-template-columns: 220px 1fr; gap: 18px; }
-@media (max-width: 700px) { .pensando { grid-template-columns: 1fr; } }
-.medidor { text-align: center; }
-.medidor .num { font-size: 40px; font-weight: 700; }
-.barra { height: 10px; background: var(--panel2); border-radius: 99px; overflow: hidden; position: relative; }
-.barra > i { position: absolute; top: 0; bottom: 0; }
-.conclusion { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-weight: 600; font-size: 13.5px; }
-.conclusion.opero { background: rgba(46,163,107,.15); color: #7ee2b0; }
-.conclusion.practica { background: rgba(212,167,44,.15); color: #f0cf6c; }
-.conclusion.descarto { background: var(--panel2); color: var(--muted); }
-.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.checks li { display: grid; grid-template-columns: 22px 150px 1fr; gap: 6px; align-items: start;
-  padding: 6px 8px; background: var(--panel2); border-radius: 8px; font-size: 13px; }
-@media (max-width: 700px) { .checks li { grid-template-columns: 22px 1fr; } .checks li .d { grid-column: 2; } }
-.opiniones { display: grid; gap: 7px; margin-top: 14px; }
-.op { display: grid; grid-template-columns: 110px 1fr 60px; gap: 8px; align-items: center; font-size: 13px; }
-.op .barra > i.centro { left: 50%; width: 1px; background: var(--muted); opacity: .6; }
-svg text { fill: var(--muted); font-size: 11px; }
-.red-tip { min-height: 38px; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-.etapas { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin: 10px 0; }
-.etapa { height: 34px; border-radius: 6px; background: var(--panel2); display: grid; place-items: center;
-  font-size: 12px; color: var(--muted); border: 1px solid var(--line); cursor: pointer; }
-.etapa.hecha { background: rgba(46,163,107,.2); color: #7ee2b0; border-color: rgba(46,163,107,.35); }
-.etapa.actual { border-color: var(--acento); color: var(--text); }
-ul.apuntes { margin: 8px 0 0; padding-left: 18px; color: #c9d4df; font-size: 13px; }
-.cal { display: grid; gap: 6px; }
-.fila-cal { display: grid; grid-template-columns: 70px 1fr 90px; gap: 8px; align-items: center; font-size: 12.5px; }
-.puntos { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 10px; }
-.puntos i { width: 9px; height: 9px; border-radius: 2px; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
-th { color: var(--muted); font-weight: 600; font-size: 12px; cursor: pointer; user-select: none; }
-tbody tr { cursor: pointer; } tbody tr:hover { background: var(--panel2); }
-.scroll { max-height: 360px; overflow: auto; }
-input[type=search] { width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
-  background: var(--panel2); color: var(--text); margin-bottom: 10px; font: inherit; }
-.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 380px; overflow: auto; }
-.feed li { padding: 7px 9px; background: var(--panel2); border-radius: 8px; font-size: 12.5px; }
-.feed .h { color: var(--muted); font-size: 11.5px; margin-right: 6px; font-variant-numeric: tabular-nums; }
-.feed li.nuevo { animation: brillo 1.6s ease-out; }
-@keyframes brillo { from { background: rgba(106,169,255,.25); } to { background: var(--panel2); } }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.kpi { background: var(--panel2); border-radius: 10px; padding: 10px 12px; }
-.kpi b { display: block; font-size: 20px; }
-.kpi span { color: var(--muted); font-size: 12px; }
-.pos { color: var(--sube); } .neg { color: var(--baja); }
-.vacio { color: var(--muted); font-style: italic; padding: 8px 0; }
-dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px;
-  max-width: 520px; padding: 18px; }
-dialog::backdrop { background: rgba(0,0,0,.6); }
-.btn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
-  padding: 6px 12px; cursor: pointer; font: inherit; }
+html { background: var(--bg); color-scheme: dark; scrollbar-color: var(--bg3) var(--bg); }
+body { margin: 0; color: var(--text); font: 16px/1.5 var(--display); -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(70% 50% at 50% 0%, rgba(63, 210, 255, 0.08), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 0L56 16v32L28 64 0 48V16zM28 64v33M0 48v49M56 48v49' fill='none' stroke='%233fd2ff' stroke-opacity='.045'/%3E%3C/svg%3E"),
+    var(--bg); }
+::selection { background: rgba(63, 210, 255, 0.3); color: #fff; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 10px; border: 2px solid var(--bg); }
+:focus-visible { outline: 2px solid var(--sube); outline-offset: 3px; border-radius: 4px; }
+a { color: var(--acento); text-underline-offset: 3px; }
+button { font: inherit; color: inherit; }
+.num { font-family: var(--num); font-variant-numeric: tabular-nums; }
+.icono { width: 18px; height: 18px; stroke-width: 1.6; vertical-align: -3px; flex: none; }
+
+/* ---------- Escenario 3D ---------- */
+#escena { position: relative; height: 100svh; min-height: 620px; overflow: hidden; isolation: isolate; }
+#lienzo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: pan-y; }
+#lienzo:active { cursor: grabbing; }
+.escaneo { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.escaneo::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(63, 210, 255, 0.035) 0 1px, transparent 1px 4px); }
+.escaneo::after { content: ""; position: absolute; left: 0; right: 0; height: 22vh; top: -22vh;
+  background: linear-gradient(180deg, transparent, rgba(63, 210, 255, 0.07) 70%, rgba(63, 210, 255, 0.22) 99%, transparent);
+  animation: barrido 7s linear infinite; }
+@keyframes barrido { to { transform: translateY(125vh); } }
+.vineta { position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: radial-gradient(120% 80% at 50% 45%, transparent 55%, rgba(2, 6, 17, 0.88) 100%); }
+.hud { position: absolute; z-index: 2; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+
+.barra-sup { top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding: 18px clamp(16px, 3vw, 36px); }
+.marca { display: flex; align-items: center; gap: 12px; }
+.marca h1 { margin: 0; font-family: var(--titulo); font-size: clamp(20px, 2.4vw, 28px); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; text-shadow: var(--glow); }
+.marca svg.logo { width: 34px; height: 34px; }
+.estado-con { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.punto { width: 8px; height: 8px; border-radius: 50%; background: var(--sube); }
+.punto.caido { background: var(--baja); }
+.selector { display: inline-flex; border: 1px solid var(--line2); border-radius: 999px; padding: 3px; background: rgba(8, 16, 30, 0.6); backdrop-filter: blur(6px); }
+.selector button { border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; transition: background .3s var(--ease), color .3s var(--ease); }
+.selector button[aria-pressed="true"] { background: var(--sube); color: #021220; font-weight: 700; box-shadow: var(--glow); }
+.servicios { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.servicio { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); padding: 6px 13px; border: 1px solid var(--line); border-radius: 999px; background: rgba(8, 16, 30, 0.55); }
+.servicio i { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+.servicio.on i { background: var(--sube); } .servicio.off i { background: var(--baja); }
+
+.activos { top: 84px; left: clamp(16px, 3vw, 36px); display: flex; gap: 8px; flex-wrap: wrap; max-width: 70vw; }
+.activo { border: 1px solid var(--line); background: rgba(8, 16, 30, 0.6); backdrop-filter: blur(6px); color: var(--muted);
+  border-radius: 10px; padding: 9px 14px; cursor: pointer; text-align: left; transition: border-color .3s var(--ease), transform .3s var(--ease); }
+.activo:hover { border-color: var(--line2); transform: translateY(-1px); }
+.activo[aria-pressed="true"] { border-color: var(--sube); color: var(--text); box-shadow: var(--glow), inset 0 0 12px rgba(63, 210, 255, 0.15); }
+.activo b { display: block; font-family: var(--titulo); font-size: 12.5px; letter-spacing: 0.1em; }
+.activo span { font-size: 11px; }
+
+.veredicto { left: clamp(16px, 3vw, 36px); bottom: clamp(20px, 4vh, 44px); width: min(440px, calc(100vw - 32px)); }
+.medidor { position: relative; width: 190px; height: 190px; margin-bottom: 6px; }
+.medidor svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 10px rgba(63, 210, 255, 0.35)); }
+.giro-lento { transform-origin: 100px 100px; animation: girar 30s linear infinite; }
+.giro-inverso { transform-origin: 100px 100px; animation: girar 18s linear infinite reverse; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.medidor-txt { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.medidor-txt span { font-family: var(--titulo); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+.prob { font-family: var(--num); font-size: 40px; line-height: 1; font-weight: 600; letter-spacing: -0.03em; white-space: nowrap; text-shadow: var(--glow); }
+.prob small { font-size: 0.45em; color: var(--muted); }
+.direccion { font-family: var(--titulo); font-size: 15px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; margin: 6px 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.conclusion { font-size: 14.5px; line-height: 1.45; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+  background: rgba(8, 16, 30, 0.72); backdrop-filter: blur(10px); box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.6); }
+.conclusion b { display: block; font-family: var(--titulo); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px; }
+.conclusion.opero { border-color: rgba(63, 210, 255, 0.6); } .conclusion.opero b { color: var(--sube); }
+.conclusion.practica { border-color: rgba(255, 192, 77, 0.55); } .conclusion.practica b { color: var(--ambar); }
+.conclusion.descarto b { color: var(--muted); }
+
+.lectura { right: clamp(16px, 3vw, 36px); bottom: clamp(20px, 4vh, 44px); width: min(380px, calc(100vw - 32px)); }
+.lectura ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.lectura li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; font-size: 13px; color: var(--muted);
+  padding: 8px 12px; border-radius: 8px; background: rgba(8, 16, 30, 0.62); backdrop-filter: blur(8px); border: 1px solid transparent; }
+.lectura li b { color: var(--text); font-weight: 500; }
+.lectura li .ok { color: var(--sube); } .lectura li .no { color: var(--baja); }
+.lectura li.foco { border-color: var(--line2); }
+
+.ayuda-3d { bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--dim); display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+.etiqueta3d { position: absolute; z-index: 3; pointer-events: none; padding: 10px 13px; border-radius: 10px; font-size: 12.5px;
+  background: rgba(4, 6, 12, 0.88); border: 1px solid var(--line2); max-width: 260px; transform: translate(14px, 14px); opacity: 0; transition: opacity .2s var(--ease); }
+.etiqueta3d.visible { opacity: 1; }
+.etiqueta3d b { display: block; font-size: 13px; margin-bottom: 2px; }
+
+#conectar { position: absolute; z-index: 4; left: 50%; top: 52%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px));
+  padding: 26px; border-radius: 18px; border: 1px solid var(--line2); background: rgba(6, 10, 20, 0.86); backdrop-filter: blur(14px);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8); display: none; }
+#conectar h2 { margin: 0 0 8px; font-family: var(--titulo); font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; }
+#conectar ol { margin: 12px 0; padding-left: 20px; color: var(--muted); }
+#conectar li { margin: 4px 0; }
+.campo { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.campo input { flex: 1; min-width: 200px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line2); background: var(--bg2); color: var(--text); font-family: var(--num); font-size: 13px; }
+.boton { padding: 9px 16px; border-radius: 10px; border: 1px solid var(--sube); background: var(--sube); color: #021220; font-weight: 600; cursor: pointer; letter-spacing: 0.04em; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.boton:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -8px rgba(63, 210, 255, 0.6); }
+.boton.sec { background: transparent; color: var(--text); border-color: var(--line2); }
+
+.bajar { bottom: 10px; right: 50%; }
+
+/* ---------- Cámaras ---------- */
+main { position: relative; z-index: 1; padding: clamp(60px, 9vh, 120px) clamp(16px, 4vw, 56px) 80px; max-width: 1440px; margin: 0 auto; }
+.camara { position: relative; padding: clamp(22px, 3vw, 34px); border: 1px solid var(--line); border-radius: 6px;
+  background: linear-gradient(180deg, rgba(11, 27, 56, 0.6), rgba(6, 16, 36, 0.35)); opacity: 0; transform: translateY(24px);
+  transition: opacity .9s var(--ease), transform .9s var(--ease); }
+.camara.visible { opacity: 1; transform: none; }
+.camara::before, .camara::after { content: ""; position: absolute; width: 26px; height: 26px; border-color: var(--sube); border-style: solid; pointer-events: none; filter: drop-shadow(0 0 4px rgba(63, 210, 255, 0.7)); }
+.camara::before { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+.camara::after { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+.camara h2 { margin: 0 0 6px; font-family: var(--titulo); font-size: clamp(22px, 2.4vw, 30px); line-height: 1.15; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: center; gap: 12px; text-wrap: balance; }
+.camara h2 .icono { width: 28px; height: 28px; color: var(--sube); }
+.camara .intro { margin: 0 0 22px; color: var(--muted); max-width: 64ch; font-size: 14.5px; }
+.rejilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: clamp(16px, 2vw, 26px); }
+.g12 { grid-column: span 12; } .g8 { grid-column: span 8; } .g7 { grid-column: span 7; } .g6 { grid-column: span 6; }
+.g5 { grid-column: span 5; } .g4 { grid-column: span 4; }
+@media (max-width: 1020px) { .g8, .g7, .g6, .g5, .g4 { grid-column: span 12; } }
+.separador { grid-column: span 12; height: clamp(30px, 6vh, 70px); }
+
+.barra { position: relative; height: 8px; border-radius: 99px; background: rgba(122, 190, 255, 0.1); overflow: hidden; }
+.barra > i { position: absolute; top: 0; bottom: 0; border-radius: 99px; transition: width .8s var(--ease), left .8s var(--ease); }
+.op { display: grid; grid-template-columns: 110px 1fr 56px; gap: 10px; align-items: center; font-size: 13.5px; margin: 8px 0; }
+.op .centro { left: 50%; width: 1px; background: var(--muted); opacity: .5; }
+
+.etapas { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 4px 0 18px; }
+.etapa { position: relative; height: 54px; border-radius: 12px; border: 1px solid var(--line); background: rgba(8, 16, 30, 0.6); cursor: pointer;
+  display: grid; place-items: center; font-family: var(--num); font-size: 16px; color: var(--dim); transition: transform .3s var(--ease), border-color .3s var(--ease); }
+.etapa:hover { transform: translateY(-3px); border-color: var(--line2); }
+.etapa.hecha { color: var(--sube); border-color: rgba(63, 210, 255, 0.5); background: rgba(63, 210, 255, 0.1); }
+.etapa.actual { color: var(--text); border-color: var(--acento); box-shadow: 0 10px 30px -10px rgba(122, 168, 255, 0.6); }
+.etapa.actual::after { content: ""; position: absolute; inset: auto 10px 7px; height: 2px; border-radius: 2px; background: var(--acento); transform-origin: left; transform: scaleX(var(--p, 0)); transition: transform .8s var(--ease); }
+.apuntes { margin: 10px 0 0; padding-left: 20px; color: #c5d3ea; font-size: 14px; max-width: 70ch; }
+.apuntes li { margin: 5px 0; }
+.detalle-etapa { margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: rgba(8, 16, 30, 0.7); border: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+.detalle-etapa b { color: var(--text); }
+
+.fila { display: grid; grid-template-columns: 90px 1fr 120px; gap: 12px; align-items: center; font-size: 13.5px; margin: 9px 0; }
+.puntos { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 14px; }
+.puntos i { width: 11px; height: 11px; border-radius: 3px; animation: aparecer .6s var(--ease) both; }
+@keyframes aparecer { from { transform: scale(0.3); opacity: 0; } }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+.kpi { background: var(--bg2); padding: 16px 18px; }
+.kpi b { display: block; font-family: var(--num); font-size: 26px; font-weight: 500; letter-spacing: -0.02em; }
+.kpi span { color: var(--muted); font-size: 12.5px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { color: var(--text); }
+td.num, th.num { text-align: right; }
+tbody tr { cursor: pointer; transition: background .2s var(--ease); } tbody tr:hover { background: rgba(122, 190, 255, 0.06); }
+.desliza { max-height: 420px; overflow: auto; border-radius: 12px; }
+.buscador { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line2); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; background: var(--bg2); }
+.buscador input { flex: 1; border: 0; background: transparent; color: var(--text); font: inherit; outline: none; }
+.pos { color: var(--sube); } .neg { color: var(--baja); } .amb { color: var(--ambar); } .muted { color: var(--muted); }
+.vacio { color: var(--muted); padding: 10px 0; }
+
+.flujo { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 440px; overflow: auto; }
+.flujo li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; padding: 9px 12px; border-radius: 10px; background: rgba(8, 16, 30, 0.65); font-size: 13.5px; }
+.flujo .h { color: var(--dim); font-family: var(--num); font-size: 12px; }
+.flujo li.nuevo { animation: destello 1.8s var(--ease); }
+@keyframes destello { from { background: rgba(63, 210, 255, 0.22); } }
+
+.cajon { position: fixed; z-index: 10; top: 0; right: 0; bottom: 0; width: min(440px, 100vw); padding: 28px; background: rgba(6, 10, 20, 0.96);
+  border-left: 1px solid var(--line2); box-shadow: -30px 0 60px -20px rgba(0, 0, 0, 0.8); transform: translateX(105%); transition: transform .5s var(--ease); overflow: auto; }
+.cajon.abierto { transform: none; }
+.cajon h3 { margin: 0 0 10px; font-family: var(--titulo); font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cajon p { color: #c5d3ea; }
+.cerrar { position: absolute; top: 16px; right: 16px; border: 1px solid var(--line2); background: transparent; border-radius: 10px; padding: 6px; cursor: pointer; }
+
+footer { text-align: center; color: var(--dim); font-size: 12.5px; padding: 30px 16px 50px; }
+
+@media (max-width: 760px) {
+  .lectura { display: none; }
+  .activos { top: 128px; max-width: calc(100vw - 32px); }
+  .servicios { margin-left: 0; }
+  .op { grid-template-columns: 90px 1fr 44px; }
+  .fila { grid-template-columns: 70px 1fr 90px; }
+  .etapa { height: 42px; font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .escaneo::after { display: none; }
+  .camara { opacity: 1; transform: none; transition: none; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
 </style>
 </head>
 <body>
-<header>
-  <span class="vivo" id="vivo" title="Conexión con el bot"></span>
-  <h1>🧠 Neuro Trade</h1>
-  <span class="muted" id="hora">conectando…</span>
-  <div class="seg" role="tablist" aria-label="Mercado">
-    <button id="m-otc" class="on" onclick="elegirMercado('otc')">OTC</button>
-    <button id="m-real" onclick="elegirMercado('real')">Mercado real</button>
+
+<section id="escena" aria-label="Cerebro del bot en 3D">
+  <canvas id="lienzo" aria-hidden="true"></canvas>
+  <div class="vineta"></div>
+  <div class="escaneo"></div>
+  <div class="etiqueta3d" id="etiqueta3d"></div>
+
+  <div class="hud barra-sup">
+    <div class="marca">
+      <svg class="logo" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <circle cx="20" cy="20" r="17" stroke="var(--line2)"/><circle cx="20" cy="20" r="4" fill="var(--sube)" stroke="none"/>
+        <path d="M8 13l12 7 12-7M8 27l12-7 12 7M20 3v13M20 24v13" stroke="var(--sube)" stroke-opacity=".7"/>
+      </svg>
+      <h1>Neuro Trade</h1>
+    </div>
+    <div class="estado-con"><span class="punto" id="punto"></span><span id="hora">conectando con el bot…</span></div>
+    <div class="selector" role="group" aria-label="Mercado">
+      <button id="m-otc" aria-pressed="true">OTC</button>
+      <button id="m-real" aria-pressed="false">Mercado real</button>
+    </div>
+    <div class="servicios" id="servicios"></div>
   </div>
-  <div class="chips" id="servicios"></div>
-</header>
-<div id="sin-bot" style="display:none;max-width:760px;margin:40px auto;padding:0 20px">
-  <section>
-    <h2>🔌 Conecta Neuro Trade con tu bot</h2>
-    <p>Neuro Trade muestra en vivo el cerebro de tu bot de trading. Los datos no se guardan en internet:
-      la página se conecta directamente al bot que corre en tu computadora.</p>
-    <ol class="apuntes">
+
+  <div class="hud activos" id="activos" role="group" aria-label="Divisa analizada"></div>
+
+  <div class="hud veredicto" aria-live="polite">
+    <div class="medidor">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <g class="giro-lento"><circle cx="100" cy="100" r="94" fill="none" stroke="var(--line2)" stroke-width="1" stroke-dasharray="2 6"/></g>
+        <g class="giro-inverso"><circle cx="100" cy="100" r="86" fill="none" stroke="var(--sube)" stroke-opacity=".35" stroke-width="1" stroke-dasharray="40 14 4 14"/></g>
+        <circle cx="100" cy="100" r="74" fill="none" stroke="rgba(63,210,255,.12)" stroke-width="8"/>
+        <circle id="arco" cx="100" cy="100" r="74" fill="none" stroke="var(--sube)" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="0 465" transform="rotate(-90 100 100)" style="transition: stroke-dasharray .9s var(--ease), stroke .6s"/>
+        <circle cx="100" cy="100" r="60" fill="rgba(2,6,17,.7)" stroke="var(--line)"/>
+      </svg>
+      <div class="medidor-txt"><div class="prob num" id="prob">--<small>%</small></div><span id="prob-lado">esperando</span></div>
+    </div>
+    <div class="direccion" id="direccion">Esperando la próxima vela</div>
+    <div class="conclusion descarto" id="conclusion"><b>Conclusión</b>El bot analiza al cierre de cada vela de 1 minuto.</div>
+  </div>
+
+  <div class="hud lectura" aria-label="Comprobaciones de la última vela"><ul id="checks"></ul></div>
+
+  <div class="hud ayuda-3d"><i data-lucide="move-3d" class="icono"></i>Arrastra para girar · rueda para acercar · toca un planeta, una luna o el sol</div>
+
+  <div id="conectar" role="dialog" aria-labelledby="conectar-t">
+    <h2 id="conectar-t">Conecta Neuro Trade con tu bot</h2>
+    <p class="muted">Neuro Trade muestra en vivo el cerebro de tu bot de trading. Los datos no se guardan en internet: la página se conecta al bot que corre en tu computadora.</p>
+    <ol>
       <li>Abre esta página en el mismo PC donde corre el bot.</li>
       <li>Ejecuta el bot (<code>./ejecutar_bot.sh</code>) o deja encendidos sus servicios: el panel se prende solo.</li>
       <li>Si el navegador pregunta si la página puede acceder a la red local, acepta.</li>
     </ol>
-    <p class="muted" style="font-size:12.5px">Dirección del bot:
-      <input id="api-url" style="width:240px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--text)">
-      <button class="btn" onclick="guardarApi()">Conectar</button></p>
-  </section>
-</div>
+    <div class="campo">
+      <input id="api-url" aria-label="Dirección del bot" spellcheck="false">
+      <button class="boton" id="conectar-btn">Conectar</button>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin:12px 0 0">Mientras tanto, el cerebro que ves de fondo está en reposo: es una simulación sin datos reales.</p>
+  </div>
+</section>
 
 <main>
-  <section class="c12">
-    <h2>👁️ Pensando ahora</h2>
-    <p class="ayuda">Lo que el bot analizó en la última vela de cada divisa: qué tan seguro está de que el precio suba en 3 minutos, qué opina cada uno de sus "expertos" y qué comprobaciones pasó antes de decidir.</p>
-    <div class="tabs" id="tabs-activos"></div>
-    <div id="pensando"><p class="vacio">Esperando el primer análisis del bot…</p></div>
-  </section>
+  <div class="rejilla">
+    <section class="camara g7" id="c-pensar">
+      <h2><i data-lucide="eye" class="icono"></i>Lo que está pensando</h2>
+      <p class="intro">Cada "experto" del bot da su opinión sobre la última vela. Hacia la derecha cree que sube, hacia la izquierda que baja. El número es cuánto acierta ese experto en la práctica.</p>
+      <div id="opiniones"><p class="vacio">Esperando el primer análisis.</p></div>
+      <div id="patrones-vela"></div>
+    </section>
 
-  <section class="c7">
-    <h2>🔗 Neuronas</h2>
-    <p class="ayuda">Izquierda: lo que más pesó en esta vela. Centro: las neuronas (verde = activa hacia "sube", rojo = hacia "baja"). Derecha: la probabilidad final. Pasa el cursor sobre una neurona o una entrada para ver el detalle.</p>
-    <svg id="red" viewBox="0 0 640 380" width="100%" role="img" aria-label="Red neuronal"></svg>
-    <div class="red-tip" id="red-tip">Pasa el cursor sobre la red.</div>
-  </section>
+    <section class="camara g5" id="c-curso">
+      <h2><i data-lucide="graduation-cap" class="icono"></i>El curso</h2>
+      <p class="intro">Estudia análisis técnico por etapas: practica con el mercado y aprueba cada examen con 70/100. Toca una etapa.</p>
+      <div id="curso"><p class="vacio">Todavía no empezó el curso.</p></div>
+    </section>
 
-  <section class="c5">
-    <h2>📚 Curso de análisis técnico</h2>
-    <p class="ayuda">El bot estudia el curso por etapas. En cada una practica con el mercado y da un examen (aprueba con 70/100). Haz clic en una etapa para ver su nota.</p>
-    <div id="curso"></div>
-  </section>
+    <div class="separador"></div>
 
-  <section class="c6">
-    <h2>🪞 Metacognición: ¿su seguridad se cumple?</h2>
-    <p class="ayuda">Para cada nivel de seguridad, cuánto acierta de verdad. Una persona con buena metacognición acierta lo que dice. La línea marca el equilibrio para no perder.</p>
-    <div id="meta"></div>
-  </section>
+    <section class="camara g6" id="c-meta">
+      <h2><i data-lucide="scan-eye" class="icono"></i>¿Su seguridad se cumple?</h2>
+      <p class="intro">Metacognición: para cada nivel de seguridad, cuánto acierta de verdad. La marca blanca es el mínimo para no perder con el pago actual.</p>
+      <div id="meta"></div>
+    </section>
 
-  <section class="c6">
-    <h2>🗣️ Expertos y su fiabilidad</h2>
-    <p class="ayuda">Cada experto opina en cada vela y 3 minutos después se comprueba si acertó. Pesa más en las decisiones el que más supera el azar (50%).</p>
-    <div id="expertos"></div>
-  </section>
+    <section class="camara g6" id="c-expertos">
+      <h2><i data-lucide="users-round" class="icono"></i>Sus expertos</h2>
+      <p class="intro">Cada uno opina en cada vela y 3 minutos después se comprueba si acertó. En las decisiones pesa más el que supera el azar (50%).</p>
+      <div id="expertos"></div>
+    </section>
 
-  <section class="c4">
-    <h2>📊 Estado del cerebro</h2>
-    <p class="ayuda">Memoria, aprendizaje y "sueño" del bot.</p>
-    <div class="kpis" id="kpis"></div>
-  </section>
+    <section class="camara g12" id="c-estado">
+      <h2><i data-lucide="cpu" class="icono"></i>Estado del cerebro</h2>
+      <p class="intro">Su memoria, cómo duerme para consolidar lo aprendido y qué tan rápido está aprendiendo ahora.</p>
+      <div class="kpis" id="kpis"></div>
+    </section>
 
-  <section class="c8">
-    <h2>💰 Operaciones en demo</h2>
-    <p class="ayuda">Resultados de cada bot. Las operaciones de práctica del curso se hacen con $1.</p>
-    <div id="operaciones"></div>
-  </section>
+    <div class="separador"></div>
 
-  <section class="c7">
-    <h2>📖 Memoria de patrones</h2>
-    <p class="ayuda">Todo lo que recuerda de cada patrón de vela: cuántas veces lo vio y cuántas veces subió el precio después. Haz clic en un patrón para ver qué significa.</p>
-    <input type="search" id="buscar" placeholder="Buscar patrón…" oninput="pintarPatrones()">
-    <div class="scroll"><table><thead><tr>
-      <th onclick="ordenar('nombre')">Patrón</th><th onclick="ordenar('sesgo')">Teoría</th>
-      <th onclick="ordenar('visto')">Visto</th><th onclick="ordenar('subio')">Subió después</th>
-      <th onclick="ordenar('reciente')">Últimas 150</th><th onclick="ordenar('fase')">Estado</th>
-    </tr></thead><tbody id="patrones"></tbody></table></div>
-  </section>
+    <section class="camara g8" id="c-ops">
+      <h2><i data-lucide="activity" class="icono"></i>Operaciones en demo</h2>
+      <p class="intro">Resultados de cada bot. Las operaciones de práctica del curso son de $1.</p>
+      <div id="operaciones"></div>
+    </section>
 
-  <section class="c5">
-    <h2>✍️ Diario, lecciones y descubrimientos</h2>
-    <p class="ayuda">Lo que el bot escribe cuando se equivoca, aprende una lección, descubre un patrón, duerme o aprueba una etapa.</p>
-    <div id="lecciones"></div>
-    <ul class="feed" id="diario"></ul>
-  </section>
+    <section class="camara g4" id="c-entrenador">
+      <h2><i data-lucide="dumbbell" class="icono"></i>Entrenador</h2>
+      <p class="intro">Cada 2 horas prueba cerebros nuevos y solo cambia el actual si uno gana dos exámenes justos.</p>
+      <ul class="flujo" id="entrenador"></ul>
+    </section>
 
-  <section class="c7">
-    <h2>⚡ Flujo en vivo</h2>
-    <p class="ayuda">Cada decisión y aprendizaje del bot, al momento.</p>
-    <ul class="feed" id="eventos"></ul>
-  </section>
+    <section class="camara g7" id="c-memoria">
+      <h2><i data-lucide="library" class="icono"></i>Memoria de patrones</h2>
+      <p class="intro">Lo que recuerda de cada patrón de vela: cuántas veces lo vio y cuántas veces subió el precio después. Toca uno para ver qué significa.</p>
+      <label class="buscador"><i data-lucide="search" class="icono"></i><input id="buscar" placeholder="Buscar patrón" aria-label="Buscar patrón"></label>
+      <div class="desliza"><table><thead><tr>
+        <th data-o="nombre">Patrón</th><th data-o="sesgo">Teoría</th><th data-o="visto" class="num">Visto</th>
+        <th data-o="subio" class="num">Subió</th><th data-o="reciente" class="num">Últimas 150</th><th data-o="fase">Estado</th>
+      </tr></thead><tbody id="patrones"></tbody></table></div>
+    </section>
 
-  <section class="c5">
-    <h2>🏋️ Entrenador continuo</h2>
-    <p class="ayuda">Cada 2 horas prueba cerebros nuevos y solo cambia el actual si uno es mejor en dos exámenes justos.</p>
-    <ul class="feed" id="entrenador"></ul>
-  </section>
+    <section class="camara g5" id="c-diario">
+      <h2><i data-lucide="notebook-pen" class="icono"></i>Diario</h2>
+      <p class="intro">Lo que escribe al equivocarse, aprender una lección, descubrir un patrón, dormir o aprobar una etapa.</p>
+      <div id="lecciones"></div>
+      <ul class="flujo" id="diario"></ul>
+    </section>
+
+    <section class="camara g12" id="c-flujo">
+      <h2><i data-lucide="zap" class="icono"></i>Flujo en vivo</h2>
+      <p class="intro">Cada decisión y cada aprendizaje del bot, al momento.</p>
+      <ul class="flujo" id="eventos"></ul>
+    </section>
+  </div>
 </main>
+<footer>Neuro Trade · los datos vienen del bot que corre en este PC · cuenta demo · ningún análisis garantiza el resultado de una operación</footer>
 
-<dialog id="dlg"><div id="dlg-txt"></div><p style="text-align:right;margin:12px 0 0"><button class="btn" onclick="dlg.close()">Cerrar</button></p></dialog>
+<aside class="cajon" id="cajon" aria-hidden="true">
+  <button class="cerrar" id="cerrar" aria-label="Cerrar"><i data-lucide="x" class="icono"></i></button>
+  <div id="cajon-txt"></div>
+</aside>
 
-<script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let datos = null, mercado = "otc", activoSel = null, orden = {campo: "visto", asc: false};
-// Servida por el propio bot: misma dirección. Desde GitHub Pages: el bot de este PC.
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const QUIETO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const PAGO = 0.83, EQUILIBRIO = 100 / (1 + PAGO);
+const C = { sube: 0x3fd2ff, baja: 0xff7a33, ambar: 0xffc04d, acento: 0x3fd2ff, tenue: 0x1d3a5c };
+
+let datos = null, mercado = "otc", activoSel = null, orden = { campo: "visto", asc: false };
+const vistos = new Set();
 const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
 let API = LOCAL ? "" : "http://127.0.0.1:8765";
 try { if (!LOCAL) API = localStorage.getItem("neuro_api") || API; } catch (e) {}
-function guardarApi() {
-  API = $("api-url").value.trim().replace(/\/$/, "");
-  try { localStorage.setItem("neuro_api", API); } catch (e) {}
-  actualizar();
-}
-let vistosEventos = new Set(), vistosDiario = new Set(), primera = true;
-const PAGO = 0.83, EQUILIBRIO = 100 / (1 + PAGO);
 
-function elegirMercado(m) {
-  mercado = m; activoSel = null;
-  $("m-otc").classList.toggle("on", m === "otc"); $("m-real").classList.toggle("on", m === "real");
-  pintar();
+/* =====================================================================
+   Escena 3D: un sistema solar (lunas → planetas → sol)
+   ===================================================================== */
+const lienzo = $("lienzo");
+const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, alpha: false, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x020611, 1);
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x020611, 0.026);
+const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 200);
+camera.position.set(0, 13, 27);
+const controls = new OrbitControls(camera, lienzo);
+controls.enableDamping = true; controls.dampingFactor = 0.06;
+controls.autoRotate = !QUIETO; controls.autoRotateSpeed = 0.55;
+controls.minDistance = 12; controls.maxDistance = 55; controls.enablePan = false;
+controls.target.set(0, 0, 0);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 1.05, 0.65, 0.12);
+composer.addPass(bloom);
+
+// Campo de partículas: el "espacio" alrededor del cerebro
+{
+  const n = 1800, g = new THREE.BufferGeometry(), p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const r = 30 + Math.random() * 60, t = Math.random() * Math.PI * 2, f = Math.acos(2 * Math.random() - 1);
+    p.set([r * Math.sin(f) * Math.cos(t), r * Math.cos(f) * 0.6, r * Math.sin(f) * Math.sin(t)], i * 3);
+  }
+  g.setAttribute("position", new THREE.BufferAttribute(p, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x6f8fd0, size: 0.09, transparent: true, opacity: 0.7, depthWrite: false })));
 }
 
+/* Sistema solar: el sol es el núcleo de decisión, las 24 neuronas son
+   planetas en órbitas y las 12 entradas son lunas en la órbita exterior. */
+const N_ENT = 12, N_NEU = 24;
+const grupo = new THREE.Group(); grupo.rotation.x = 0.08; scene.add(grupo);
+const matHolo = op => new THREE.MeshBasicMaterial({ color: C.acento, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+
+// Sol (núcleo) con el reactor alrededor
+const sol = new THREE.Mesh(new THREE.SphereGeometry(1.25, 48, 24), new THREE.MeshBasicMaterial({ color: C.acento }));
+sol.userData = { tipo: "nucleo" }; grupo.add(sol);
+const corona = new THREE.Mesh(new THREE.IcosahedronGeometry(1.9, 2), new THREE.MeshBasicMaterial({ color: C.acento, wireframe: true, transparent: true, opacity: 0.45 }));
+grupo.add(corona);
+const reactor = new THREE.Group(); grupo.add(reactor);
+const arcosReactor = [[2.4, 0.05, 1.4, 0.9], [2.9, 0.03, 4.2, -0.6], [3.35, 0.02, 2.4, 0.35]].map(([r, g, arc, vel]) => {
+  const m = new THREE.Mesh(new THREE.TorusGeometry(r, g, 6, 90, arc), matHolo(0.85)); m.userData.vel = vel; reactor.add(m); return m;
+});
+
+// Órbitas: 6 anillos de planetas + la órbita exterior de las lunas
+const RADIOS = [4.6, 6.2, 7.8, 9.4, 11.0, 12.6], R_LUNAS = 15.2;
+const orbitas = new THREE.Group(); grupo.add(orbitas);
+function orbita(r, op) {
+  const pts = []; for (let i = 0; i <= 256; i++) { const a = i / 256 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r)); }
+  orbitas.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: op, blending: THREE.AdditiveBlending })));
+}
+RADIOS.forEach(r => orbita(r, 0.16)); orbita(R_LUNAS, 0.28);
+// Dial con marcas sobre la órbita exterior (toque JARVIS)
+{
+  const pts = [];
+  for (let i = 0; i < 180; i++) { const a = i / 180 * Math.PI * 2, l = i % 15 === 0 ? 0.9 : 0.35;
+    pts.push(Math.cos(a) * (R_LUNAS + 1), 0, Math.sin(a) * (R_LUNAS + 1), Math.cos(a) * (R_LUNAS + 1 + l), 0, Math.sin(a) * (R_LUNAS + 1 + l)); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+  var dial = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending }));
+  grupo.add(dial);
+}
+// Cinturón de asteroides decorativo entre los planetas y las lunas
+{
+  const n = 900, p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, r = 13.4 + Math.random() * 0.9;
+    p.set([Math.cos(a) * r, (Math.random() - 0.5) * 0.35, Math.sin(a) * r], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3));
+  var cinturon = new THREE.Points(g, new THREE.PointsMaterial({ color: 0x7fc8ff, size: 0.06, transparent: true, opacity: 0.6, depthWrite: false }));
+  grupo.add(cinturon);
+}
+const piso = new THREE.PolarGridHelper(26, 24, 10, 128, C.acento, C.acento);
+piso.material.transparent = true; piso.material.opacity = 0.06; piso.position.y = -6; scene.add(piso);
+
+const geoNodo = new THREE.SphereGeometry(1, 28, 18);
+const entradas = [], neuronas = [];
+for (let j = 0; j < N_NEU; j++) { // 4 planetas por órbita, repartidos; los de afuera giran más lento (Kepler)
+  const r = RADIOS[j % RADIOS.length], m = new THREE.Mesh(geoNodo, new THREE.MeshBasicMaterial({ color: C.tenue }));
+  m.userData = { tipo: "neurona", j, base: 0.34, r, ang: j * 2.399963, vel: 0.9 / Math.pow(r, 1.5) * 4, inc: (Math.random() - 0.5) * 0.12 };
+  m.scale.setScalar(0.34); grupo.add(m); neuronas.push(m);
+  const halo = new THREE.Mesh(new THREE.RingGeometry(1.5, 1.62, 40), matHolo(0.35)); m.add(halo); m.userData.halo = halo;
+}
+for (let i = 0; i < N_ENT; i++) {
+  const m = new THREE.Mesh(geoNodo, new THREE.MeshBasicMaterial({ color: C.tenue }));
+  m.userData = { tipo: "entrada", i, r: R_LUNAS, ang: i / N_ENT * Math.PI * 2, vel: 0.05, inc: 0 };
+  m.scale.setScalar(0.24); grupo.add(m); entradas.push(m);
+}
+function mover(m, dt) {
+  const u = m.userData; u.ang += dt * u.vel;
+  m.position.set(Math.cos(u.ang) * u.r, Math.sin(u.ang * 2) * u.inc * u.r, Math.sin(u.ang) * u.r);
+}
+[...neuronas, ...entradas].forEach(m => mover(m, 0));
+
+// Conexiones: se recalculan cada cuadro porque los planetas se mueven
+const MAXL = N_ENT * N_NEU + N_NEU;
+const lgeo = new THREE.BufferGeometry();
+const lpos = new Float32Array(MAXL * 6), lcol = new Float32Array(MAXL * 6);
+lgeo.setAttribute("position", new THREE.BufferAttribute(lpos, 3));
+lgeo.setAttribute("color", new THREE.BufferAttribute(lcol, 3));
+const lineas = new THREE.LineSegments(lgeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+grupo.add(lineas);
+let enlaces = [], rutas = [];
+const tmp = new THREE.Color();
+function definirConexiones(red) {
+  enlaces = []; rutas = [];
+  const pon = (a, b, color, f) => enlaces.push({ a, b, col: tmp.set(color).clone().multiplyScalar(f) });
+  if (red) {
+    const maxW = Math.max(...red.conexiones.flat().map(Math.abs), 1e-6);
+    red.conexiones.forEach((fila, i) => fila.forEach((w, j) => {
+      const f = Math.abs(w) / maxW; if (f < 0.42) return;
+      pon(entradas[i], neuronas[j], w > 0 ? C.sube : C.baja, 0.06 + f * 0.4);
+      if (f > 0.6) rutas.push([i, j]);
+    }));
+    const maxO = Math.max(...red.activacion.map((a, j) => Math.abs(a * red.peso_salida[j])), 1e-6);
+    red.activacion.forEach((a, j) => { const v = a * red.peso_salida[j], f = Math.abs(v) / maxO;
+      pon(neuronas[j], sol, v > 0 ? C.sube : C.baja, 0.1 + f * 0.8); });
+  } else {
+    neuronas.forEach((n, j) => { pon(n, sol, C.acento, 0.12); pon(entradas[j % N_ENT], n, C.acento, 0.05); rutas.push([j % N_ENT, j]); });
+  }
+}
+function actualizarLineas() {
+  enlaces.forEach((e, k) => {
+    const a = e.a.position, b = e.b.position;
+    lpos.set([a.x, a.y, a.z, b.x, b.y, b.z], k * 6);
+    lcol.set([e.col.r, e.col.g, e.col.b, e.col.r, e.col.g, e.col.b], k * 6);
+  });
+  lgeo.setDrawRange(0, enlaces.length * 2);
+  lgeo.attributes.position.needsUpdate = true; lgeo.attributes.color.needsUpdate = true;
+}
+definirConexiones(null);
+
+// Pulsos: la señal viaja luna → planeta → sol siguiendo sus posiciones
+const pulsos = [], geoPulso = new THREE.SphereGeometry(0.13, 10, 8);
+function disparar(color) {
+  rutas.slice().sort(() => Math.random() - 0.5).slice(0, 40).forEach(([i, j], n) => {
+    const m = new THREE.Mesh(geoPulso, new THREE.MeshBasicMaterial({ color, transparent: true }));
+    m.userData = { a: entradas[i], b: neuronas[j], t: -n * 0.03 }; m.visible = false; grupo.add(m); pulsos.push(m);
+  });
+}
+let destello = 0;
+
+function resize() {
+  const w = lienzo.clientWidth, h = lienzo.clientHeight;
+  renderer.setSize(w, h, false); composer.setSize(w, h); bloom.resolution.set(w, h);
+  camera.aspect = w / h;
+  camera.position.set(0, w < 760 ? 22 : 13, w < 760 ? 34 : 27);
+  grupo.position.x = w > 1020 ? -2.5 : 0;
+  camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+
+const reloj = new THREE.Clock();
+let enPantalla = true;
+new IntersectionObserver(e => enPantalla = e[0].isIntersecting).observe($("escena"));
+function animar() {
+  requestAnimationFrame(animar);
+  if (!enPantalla || document.hidden) return;
+  const dt = Math.min(reloj.getDelta(), 0.05), t = reloj.elapsedTime, vel = QUIETO ? 0 : 1;
+  controls.update();
+  neuronas.forEach((m, j) => { mover(m, dt * vel); m.scale.setScalar(m.userData.base * (1 + Math.sin(t * 2 + j) * 0.05)); m.userData.halo.lookAt(camera.position); });
+  entradas.forEach(m => mover(m, dt * vel));
+  actualizarLineas();
+  corona.rotation.y += dt * 0.3; corona.rotation.x += dt * 0.1;
+  reactor.lookAt(camera.position);
+  arcosReactor.forEach(m => m.rotation.z += dt * m.userData.vel * (1 + destello * 3) * vel);
+  dial.rotation.y -= dt * 0.03 * vel; cinturon.rotation.y += dt * 0.02 * vel;
+  for (let k = pulsos.length - 1; k >= 0; k--) {
+    const m = pulsos[k], u = m.userData; u.t += dt * (QUIETO ? 4 : 0.85);
+    if (u.t < 0) continue;
+    m.visible = true;
+    if (u.t < 1) m.position.lerpVectors(u.a.position, u.b.position, u.t);
+    else if (u.t < 2) m.position.lerpVectors(u.b.position, sol.position, u.t - 1);
+    else { grupo.remove(m); m.material.dispose(); pulsos.splice(k, 1); destello = 1; }
+  }
+  destello = Math.max(0, destello - dt * 1.2);
+  sol.scale.setScalar(1 + destello * 0.5 + Math.sin(t * 1.5) * 0.03);
+  bloom.strength = 1.05 + destello * 1.3;
+  composer.render();
+}
+animar();
+
+// Interacción: pasar el cursor y tocar planetas, lunas y el sol
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), etiqueta = $("etiqueta3d");
+let redActual = null, sobre = null;
+function nodoBajo(ev) {
+  const r = lienzo.getBoundingClientRect();
+  mouse.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects([...entradas, ...neuronas, sol], false)[0];
+  return hit ? hit.object : null;
+}
+function textoNodo(o) {
+  const d = o.userData;
+  if (!redActual) return d.tipo === "nucleo" ? ["El sol: núcleo de decisión", "Aquí nace la probabilidad final. Ahora está en reposo."] : ["En reposo", "Conecta el bot para verlo trabajar."];
+  if (d.tipo === "entrada") { const e = redActual.entradas[d.i]; return e ? [`Luna · ${nombreEntrada(e.nombre)}`, `Empuja ${e.aporte >= 0 ? "hacia sube" : "hacia baja"} (${e.aporte}). Valor ${e.valor}.`] : ["Luna", "Entrada sin peso en esta vela."]; }
+  if (d.tipo === "neurona") { const a = redActual.activacion[d.j], w = redActual.peso_salida[d.j]; return [`Planeta ${d.j + 1} (neurona)`, `Activación ${a} · su voto vale ${w} · aporta ${(a * w).toFixed(3)} ${a * w >= 0 ? "a sube" : "a baja"}.`]; }
+  const x = vivo(); return ["El sol: núcleo de decisión", x ? `${((x.prob ?? .5) * 100).toFixed(1)}% de que suba en 3 minutos.` : ""];
+}
+lienzo.addEventListener("pointermove", ev => {
+  const o = nodoBajo(ev);
+  if (o !== sobre) { sobre = o; }
+  if (o) {
+    const [t, d] = textoNodo(o);
+    etiqueta.innerHTML = `<b>${esc(t)}</b>${esc(d)}`; etiqueta.classList.add("visible");
+    etiqueta.style.left = ev.clientX + "px"; etiqueta.style.top = ev.clientY + "px";
+    lienzo.style.cursor = "pointer"; controls.autoRotate = false;
+  } else { etiqueta.classList.remove("visible"); lienzo.style.cursor = ""; controls.autoRotate = !QUIETO; }
+});
+lienzo.addEventListener("pointerleave", () => etiqueta.classList.remove("visible"));
+lienzo.addEventListener("click", ev => {
+  const o = nodoBajo(ev); if (!o || !redActual) return;
+  const d = o.userData;
+  if (d.tipo === "entrada" && redActual.entradas[d.i]) explicarEntrada(redActual.entradas[d.i].nombre);
+  else { const [t, txt] = textoNodo(o); abrir(`<h3>${esc(t)}</h3><p>${esc(txt)}</p>`); }
+});
+
+function pintarCerebro(x) {
+  const red = x && x.neuronas;
+  if (red && (!redActual || redActual._t !== x.t || redActual._a !== x.activo)) {
+    redActual = { ...red, _t: x.t, _a: x.activo };
+    entradas.forEach((m, i) => { const e = red.entradas[i];
+      m.material.color.set(e ? (e.aporte >= 0 ? C.sube : C.baja) : C.tenue).multiplyScalar(e ? 0.45 + Math.min(Math.abs(e.aporte) * 6, 0.55) : 1); });
+    neuronas.forEach((m, j) => {
+      const a = red.activacion[j], v = a * red.peso_salida[j], col = v >= 0 ? C.sube : C.baja;
+      m.material.color.set(col).multiplyScalar(0.3 + Math.abs(a) * 0.7);
+      m.userData.halo.material.color.set(col);
+      m.userData.base = 0.24 + Math.abs(a) * 0.36;
+    });
+    const p = x.prob ?? 0.5, tipo = tipoConclusion(x.conclusion);
+    const col = tipo === "practica" ? C.ambar : p >= 0.5 ? C.sube : C.baja;
+    sol.material.color.set(col); corona.material.color.set(col); arcosReactor.forEach(m => m.material.color.set(col));
+    definirConexiones(red);
+    disparar(col);
+  } else if (!red && redActual) {
+    redActual = null; definirConexiones(null);
+    [...entradas, ...neuronas].forEach(m => m.material.color.set(C.tenue));
+  }
+}
+// En reposo, un destello de muestra cada pocos segundos
+setInterval(() => { if (!redActual && !QUIETO && enPantalla) disparar(C.acento); }, 4500);
+
+/* =====================================================================
+   Datos del bot
+   ===================================================================== */
 async function actualizar() {
   try {
-    const r = await fetch(API + "/api/estado", {cache: "no-store"});
+    const r = await fetch(API + "/api/estado", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
     datos = await r.json();
-    $("vivo").classList.remove("caido");
-    $("sin-bot").style.display = "none"; document.querySelector("main").style.display = "";
-    $("hora").textContent = "actualizado " + datos.hora;
+    $("punto").classList.remove("caido");
+    $("hora").textContent = "en vivo · " + datos.hora;
+    $("conectar").style.display = "none";
     pintar();
   } catch (e) {
-    $("vivo").classList.add("caido");
+    $("punto").classList.add("caido");
     $("hora").textContent = "sin conexión con el bot";
     if (!datos) {
-      $("sin-bot").style.display = ""; document.querySelector("main").style.display = "none";
+      $("conectar").style.display = "block";
       if (document.activeElement !== $("api-url")) $("api-url").value = API || location.origin;
     }
   }
+}
+$("conectar-btn").addEventListener("click", () => {
+  API = $("api-url").value.trim().replace(/\/$/, "");
+  try { localStorage.setItem("neuro_api", API); } catch (e) {}
+  actualizar();
+});
+
+function elegirMercado(m) {
+  mercado = m; activoSel = null;
+  $("m-otc").setAttribute("aria-pressed", m === "otc"); $("m-real").setAttribute("aria-pressed", m === "real");
+  pintar();
+}
+$("m-otc").addEventListener("click", () => elegirMercado("otc"));
+$("m-real").addEventListener("click", () => elegirMercado("real"));
+
+const tipoConclusion = c => /^OPERO/.test(c || "") ? "opero" : /^PRÁCTICA/.test(c || "") ? "practica" : "descarto";
+function delMercado() {
+  const a = (datos && datos.en_vivo && datos.en_vivo.activos) || {};
+  return Object.values(a).filter(x => x.mercado === mercado).sort((x, y) => y.t - x.t);
+}
+function vivo() {
+  const l = delMercado();
+  if (!l.length) return null;
+  if (!activoSel || !l.find(x => x.activo === activoSel)) activoSel = l[0].activo;
+  return l.find(x => x.activo === activoSel);
 }
 
 function pintar() {
   if (!datos) return;
   const cer = datos.cerebros[mercado];
-  pintarServicios(); pintarPensando(); pintarCurso(cer); pintarMeta(cer); pintarExpertos(cer);
-  pintarKpis(cer); pintarOperaciones(); pintarPatrones(); pintarDiario(cer); pintarEventos(); pintarEntrenador();
-  primera = false;
+  pintarServicios(); pintarVeredicto(); pintarOpiniones(cer); pintarCurso(cer); pintarMeta(cer); pintarExpertos(cer);
+  pintarKpis(cer); pintarOperaciones(); pintarPatrones(); pintarDiario(cer); pintarFlujo(); pintarEntrenador();
+  if (window.lucide) lucide.createIcons();
 }
 
 function pintarServicios() {
-  const nombres = {"bot-neuronal-otc": "Neuronal OTC", "bot-neuronal-real": "Neuronal real",
-                   "bot-ml-real": "ML real", "bot-entrenador": "Entrenador"};
+  const n = { "bot-neuronal-otc": "Neuronal OTC", "bot-neuronal-real": "Neuronal real", "bot-ml-real": "ML real", "bot-entrenador": "Entrenador" };
   $("servicios").innerHTML = Object.entries(datos.servicios).map(([k, v]) =>
-    `<span class="chip ${v === "active" ? "ok" : "mal"}" title="${esc(k)}: ${esc(v)}">${v === "active" ? "●" : "○"} ${esc(nombres[k] || k)}</span>`).join("");
+    `<span class="servicio ${v === "active" ? "on" : "off"}" title="${esc(k)}: ${esc(v)}"><i></i>${esc(n[k] || k)}</span>`).join("");
 }
 
-function activosDelMercado() {
-  const a = (datos.en_vivo && datos.en_vivo.activos) || {};
-  return Object.values(a).filter(x => x.mercado === mercado).sort((x, y) => y.t - x.t);
-}
-
-function pintarPensando() {
-  const lista = activosDelMercado();
-  if (!lista.length) {
-    $("tabs-activos").innerHTML = "";
-    $("pensando").innerHTML = `<p class="vacio">Todavía no hay análisis en ${mercado === "otc" ? "OTC" : "mercado real"}. ${mercado === "real" ? "El mercado real se analiza cuando IQ Option lo abre." : "El bot analiza al cierre de cada vela de 1 minuto."}</p>`;
-    pintarRed(null); return;
+function pintarVeredicto() {
+  const l = delMercado(), x = vivo();
+  $("activos").innerHTML = l.map(a => `<button class="activo" data-a="${esc(a.activo)}" aria-pressed="${a.activo === activoSel}">
+      <b>${esc(a.activo.replace("-OTC", ""))}</b><span>hace ${Math.max(0, Math.round(Date.now() / 1000 - a.t))} s</span></button>`).join("");
+  pintarCerebro(x);
+  if (!x) {
+    $("prob").innerHTML = `--<small>%</small>`; $("prob-lado").textContent = "esperando"; $("arco").setAttribute("stroke-dasharray", "0 465");
+    $("direccion").innerHTML = mercado === "real" ? "El mercado real se analiza cuando IQ Option lo abre" : "Esperando la próxima vela";
+    $("conclusion").className = "conclusion descarto"; $("conclusion").innerHTML = `<b>Conclusión</b>Sin análisis todavía en este mercado.`;
+    $("checks").innerHTML = ""; return;
   }
-  if (!activoSel || !lista.find(x => x.activo === activoSel)) activoSel = lista[0].activo;
-  $("tabs-activos").innerHTML = lista.map(x => {
-    const hace = Math.round(Date.now() / 1000 - x.t);
-    return `<button class="tab ${x.activo === activoSel ? "on" : ""}" onclick="activoSel='${esc(x.activo)}';pintar()">${esc(x.activo)} <span class="muted">hace ${hace}s</span></button>`;
+  const p = (x.prob ?? 0.5) * 100, sube = p >= 50, tipo = tipoConclusion(x.conclusion);
+  const pl = sube ? p : 100 - p;
+  $("prob").innerHTML = `<span class="${sube ? "pos" : "neg"}">${pl.toFixed(1)}</span><small>%</small>`;
+  $("prob-lado").textContent = sube ? "de que sube" : "de que baja";
+  // El arco muestra cuánto se aleja de 50% (lleno = 75% de seguridad o más)
+  $("arco").setAttribute("stroke-dasharray", `${Math.min(Math.abs(p - 50) / 25, 1) * 465} 465`);
+  $("arco").setAttribute("stroke", tipo === "practica" ? "var(--ambar)" : sube ? "var(--sube)" : "var(--baja)");
+  $("direccion").innerHTML = `<i data-lucide="${sube ? "trending-up" : "trending-down"}" class="icono ${sube ? "pos" : "neg"}"></i>${sube ? "Cree que sube" : "Cree que baja"}<span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:13px">· red sola ${((x.p_red ?? 0.5) * 100).toFixed(1)}%</span>`;
+  const titulo = { opero: "Opera", practica: "Práctica ($1)", descarto: "Descarta" }[tipo];
+  $("conclusion").className = "conclusion " + tipo;
+  $("conclusion").innerHTML = `<b>${titulo}</b>${esc(x.conclusion.replace(/^(OPERO|PRÁCTICA|DESCARTO)[^:]*:\s*/, ""))}`;
+  $("checks").innerHTML = (x.checks || []).map(c => `<li class="${c.ok ? "" : "foco"}" title="${esc(c.detalle)}">
+      <i data-lucide="${c.ok ? "check" : "x"}" class="icono ${c.ok ? "ok" : "no"}"></i><span><b>${esc(c.nombre)}</b> · ${esc(c.detalle)}</span></li>`).join("");
+}
+$("activos").addEventListener("click", ev => { const b = ev.target.closest(".activo"); if (b) { activoSel = b.dataset.a; pintar(); } });
+
+function pintarOpiniones(cer) {
+  const x = vivo();
+  if (!x) { $("opiniones").innerHTML = `<p class="vacio">Esperando el primer análisis.</p>`; $("patrones-vela").innerHTML = ""; return; }
+  const fiab = {}; ((cer || {}).expertos || []).forEach(e => fiab[e.nombre] = e);
+  $("opiniones").innerHTML = Object.entries(x.opiniones || {}).map(([k, v]) => {
+    const d = ((v ?? 0.5) - 0.5) * 100, w = Math.min(Math.abs(d) * 5, 50), f = fiab[k];
+    return `<div class="op"><span>${esc(k)}</span>
+      <div class="barra" title="${((v ?? .5) * 100).toFixed(1)}% de que suba"><i class="centro"></i><i style="${d >= 0 ? `left:50%;width:${w}%;background:var(--sube)` : `left:${50 - w}%;width:${w}%;background:var(--baja)`}"></i></div>
+      <span class="num muted" title="Fiabilidad comprobada">${f && f.acierto != null ? f.acierto.toFixed(0) + "%" : "—"}</span></div>`;
   }).join("");
-  const x = lista.find(a => a.activo === activoSel);
-  const p = (x.prob ?? 0.5) * 100;
-  const sube = p >= 50;
-  const tipo = /^OPERO/.test(x.conclusion) ? "opero" : /^PRÁCTICA/.test(x.conclusion) ? "practica" : "descarto";
-  const ops = Object.entries(x.opiniones || {});
-  const fiab = {};
-  ((datos.cerebros[mercado] || {}).expertos || []).forEach(e => fiab[e.nombre] = e);
-  $("pensando").innerHTML = `
-    <div class="pensando">
-      <div class="medidor">
-        <div class="muted">Probabilidad de que suba</div>
-        <div class="num ${sube ? "pos" : "neg"}">${p.toFixed(1)}%</div>
-        <div class="barra"><i style="left:0;width:${p}%;background:${sube ? "var(--sube)" : "var(--baja)"}"></i></div>
-        <div class="muted" style="margin-top:6px">${sube ? "↑ cree que sube" : "↓ cree que baja"}${x.p_red != null ? ` · la red sola: ${(x.p_red * 100).toFixed(1)}%` : ""}</div>
-        <div class="conclusion ${tipo}">💭 ${esc(x.conclusion)}</div>
-        ${x.patrones && x.patrones.length ? `<div class="muted" style="margin-top:10px;text-align:left">Patrones en esta vela: ${x.patrones.map(n => `<a href="#" onclick="explicar('${esc(n)}');return false" style="color:var(--acento)">${esc(n)}</a>`).join(", ")}</div>` : ""}
-        ${x.aprendidas ? `<div class="muted" style="margin-top:6px;text-align:left">✍️ Aprendió de ${x.aprendidas} predicción(es) vencida(s): ${x.aciertos_ahora} acertada(s)</div>` : ""}
-      </div>
-      <div>
-        <ul class="checks">${(x.checks || []).map(c => `<li><span>${c.ok ? "✅" : "❌"}</span><b>${esc(c.nombre)}</b><span class="d muted">${esc(c.detalle)}</span></li>`).join("")}</ul>
-        <div class="opiniones">${ops.map(([k, v]) => {
-          const d = ((v ?? 0.5) - 0.5) * 100, w = Math.min(Math.abs(d) * 4, 50);
-          const f = fiab[k];
-          return `<div class="op"><span>${esc(k)}</span>
-            <div class="barra" title="${(v * 100).toFixed(1)}% de que suba"><i class="centro"></i><i style="${d >= 0 ? `left:50%;width:${w}%;background:var(--sube)` : `right:50%;width:${w}%;background:var(--baja)`}"></i></div>
-            <span class="muted" title="fiabilidad comprobada">${f && f.acierto != null ? f.acierto.toFixed(0) + "%" : "—"}</span></div>`;
-        }).join("")}</div>
-        <p class="muted" style="font-size:12px;margin:6px 0 0">Barras: hacia la derecha opina "sube", hacia la izquierda "baja". A la derecha, cuánto acierta ese experto.</p>
-      </div>
-    </div>`;
-  pintarRed(x);
+  $("patrones-vela").innerHTML = x.patrones && x.patrones.length
+    ? `<p class="muted" style="margin:18px 0 0">Patrones en esta vela: ${x.patrones.map(n => `<a href="#" data-p="${esc(n)}">${esc(n.replace(/_/g, " "))}</a>`).join(", ")}</p>`
+    : `<p class="muted" style="margin:18px 0 0">Ningún patrón de vela conocido en esta vela.</p>`;
 }
-
-function color(v) {
-  const a = Math.min(Math.abs(v), 1);
-  return v >= 0 ? `rgba(46,163,107,${0.25 + a * 0.75})` : `rgba(229,83,75,${0.25 + a * 0.75})`;
-}
-
-function pintarRed(x) {
-  const svg = $("red");
-  if (!x || !x.neuronas) { svg.innerHTML = `<text x="20" y="40">Esperando un análisis…</text>`; return; }
-  // Solo se redibuja si llegó un análisis nuevo (así el cursor no pierde lo que señala)
-  if (window._red && window._red.t === x.t && window._red.activo === x.activo && svg.childElementCount) return;
-  const n = x.neuronas, ent = n.entradas, act = n.activacion, w2 = n.peso_salida;
-  const W = 640, H = 380, xe = 150, xn = 400, xs = 590;
-  const ye = i => 20 + i * (H - 40) / Math.max(ent.length - 1, 1);
-  const yn = j => 14 + j * (H - 28) / Math.max(act.length - 1, 1);
-  let s = "";
-  // Fuerza relativa: cada línea se compara con la conexión más fuerte de la red
-  const maxW1 = Math.max(...n.conexiones.flat().map(Math.abs), 1e-6);
-  const maxOut = Math.max(...act.map((a, j) => Math.abs(a * w2[j])), 1e-6);
-  ent.forEach((e, i) => n.conexiones[i].forEach((w, j) => {
-    const f = Math.abs(w) / maxW1;
-    if (f < 0.35) return;  // solo las conexiones importantes
-    s += `<line x1="${xe}" y1="${ye(i)}" x2="${xn}" y2="${yn(j)}" stroke="${w > 0 ? "#2ea36b" : "#e5534b"}" stroke-opacity="${0.12 + f * 0.5}" stroke-width="${0.6 + f * 2}" class="c-e${i} c-n${j}"/>`;
-  }));
-  act.forEach((a, j) => {
-    const v = a * w2[j], f = Math.abs(v) / maxOut;
-    s += `<line x1="${xn}" y1="${yn(j)}" x2="${xs}" y2="${H / 2}" stroke="${v > 0 ? "#2ea36b" : "#e5534b"}" stroke-opacity="${0.15 + f * 0.75}" stroke-width="${0.6 + f * 3.5}" class="c-n${j}"/>`;
-  });
-  ent.forEach((e, i) => {
-    s += `<g style="cursor:pointer" onmouseenter="tip('entrada',${i})" onclick="explicarEntrada('${esc(e.nombre)}')"><circle cx="${xe}" cy="${ye(i)}" r="7" fill="${color(e.aporte * 3)}"/>
-      <text x="${xe - 12}" y="${ye(i) + 4}" text-anchor="end">${esc(e.nombre.replace("patron:", "🕯️ ").replace("curso_", "📚 ").replace("mtf_", "⏱️ "))}</text></g>`;
-  });
-  act.forEach((a, j) => {
-    s += `<circle cx="${xn}" cy="${yn(j)}" r="${5 + Math.abs(a) * 5}" fill="${color(a * Math.sign(w2[j] || 1))}" stroke="#0e1116" style="cursor:pointer" onmouseenter="tip('neurona',${j})"/>`;
-  });
-  const p = x.p_red ?? x.prob ?? 0.5;
-  s += `<circle cx="${xs}" cy="${H / 2}" r="22" fill="${color((p - 0.5) * 12)}"/>
-    <text x="${xs}" y="${H / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:700">${(p * 100).toFixed(0)}%</text>
-    <text x="${xs}" y="${H / 2 + 40}" text-anchor="middle">sube</text>`;
-  svg.innerHTML = s;
-  window._red = x;
-}
-
-function tip(tipo, i) {
-  const n = window._red && window._red.neuronas; if (!n) return;
-  document.querySelectorAll("#red line").forEach(l => l.style.opacity = "");
-  const clase = tipo === "entrada" ? `c-e${i}` : `c-n${i}`;
-  document.querySelectorAll("#red line").forEach(l => { if (!l.classList.contains(clase)) l.style.opacity = 0.08; });
-  if (tipo === "entrada") {
-    const e = n.entradas[i];
-    $("red-tip").innerHTML = `<b>${esc(e.nombre)}</b>: valor normalizado ${e.valor} · empuja ${e.aporte >= 0 ? "hacia <span class=pos>sube</span>" : "hacia <span class=neg>baja</span>"} (${e.aporte}). Haz clic para ver qué es.`;
-  } else {
-    $("red-tip").innerHTML = `<b>Neurona ${i + 1}</b>: activación ${n.activacion[i]} (de −1 a 1) · su voto en la salida pesa ${n.peso_salida[i]} → aporta ${(n.activacion[i] * n.peso_salida[i]).toFixed(3)} ${n.activacion[i] * n.peso_salida[i] >= 0 ? "a <span class=pos>sube</span>" : "a <span class=neg>baja</span>"}.`;
-  }
-}
-
-const NOMBRES = {ret1: "retorno de la última vela", cuerpo: "tamaño del cuerpo", m_sup: "mecha superior",
-  m_inf: "mecha inferior", rsi14: "RSI 14", rsi2: "RSI 2", bb: "posición en Bollinger", stk: "estocástico",
-  ema9: "distancia a la EMA9", ema21: "distancia a la EMA21", ema50: "distancia a la EMA50", ema200: "distancia a la EMA200",
-  pos20: "posición en el rango de 20 velas", vol: "tamaño de la vela vs. la media", h_sin: "hora del día", h_cos: "hora del día", min5: "minuto dentro del bloque de 5"};
-function explicarEntrada(nombre) {
-  if (nombre.startsWith("patron:")) return explicar(nombre.slice(7));
-  const base = nombre.replace(/^ret(\d+)$/, (m, k) => `retorno de hace ${k} velas`);
-  abrir(`<h3>${esc(nombre)}</h3><p>${esc(NOMBRES[nombre] || base)}${nombre.startsWith("curso_") ? " — concepto del curso de análisis técnico." : ""}${nombre.startsWith("mtf_") ? " — contexto de 5 y 15 minutos." : ""}</p>`);
-}
-function explicar(nombre) {
-  const p = ((datos.cerebros[mercado] || {}).patrones || []).find(x => x.nombre === nombre);
-  if (!p) return;
-  abrir(`<h3>🕯️ ${esc(p.nombre)}</h3><p>${esc(p.explicacion)}</p>
-    <p class="muted">Teoría: <b>${esc(p.sesgo)}</b>. En su memoria lo vio <b>${p.visto}</b> veces; después subió el <b>${p.subio ?? "—"}%</b>. En sus últimas ${p.n_reciente} apariciones: ${p.reciente ?? "—"}%. Estado: ${esc(p.fase)}.</p>`);
-}
-function abrir(html) { $("dlg-txt").innerHTML = html; $("dlg").showModal(); }
+$("patrones-vela").addEventListener("click", ev => { const a = ev.target.closest("a[data-p]"); if (a) { ev.preventDefault(); explicar(a.dataset.p); } });
 
 function pintarCurso(cer) {
   const c = cer && cer.curso;
-  if (!c) { $("curso").innerHTML = `<p class="vacio">El bot todavía no empezó el curso en este mercado.</p>`; return; }
-  const pct = c.practica / c.practica_min * 100;
+  if (!c) { $("curso").innerHTML = `<p class="vacio">Todavía no empezó el curso en este mercado.</p>`; return; }
+  const pct = c.practica / c.practica_min;
   $("curso").innerHTML = `
     <div class="etapas">${c.etapas.map(e => {
-      const nota = c.notas[e.n];
-      const hecha = nota && nota.nota >= 70, actual = e.n === c.etapa && !c.graduado;
-      return `<div class="etapa ${hecha ? "hecha" : ""} ${actual ? "actual" : ""}" title="${esc(e.titulo)}" onclick="verEtapa(${e.n})">${hecha ? "✓" : e.n}</div>`;
+      const nota = c.notas[e.n], hecha = nota && nota.nota >= 70, actual = e.n === c.etapa && !c.graduado;
+      return `<button class="etapa ${hecha ? "hecha" : ""} ${actual ? "actual" : ""}" data-e="${e.n}" style="--p:${actual ? pct : 0}" aria-label="Etapa ${e.n}: ${esc(e.titulo)}">${hecha ? "✓" : e.n}</button>`;
     }).join("")}</div>
-    ${c.graduado ? `<p><b>🏅 Graduado del curso.</b></p>` : `
-    <p style="margin:6px 0"><b>Etapa ${c.etapa}/${c.total}: ${esc(c.titulo)}</b> <span class="muted">(módulos ${esc(c.modulos)})</span></p>
-    <div class="muted" style="font-size:12.5px">Práctica para el examen: ${c.practica}/${c.practica_min} opiniones comprobadas</div>
-    <div class="barra" style="margin:6px 0 4px"><i style="left:0;width:${pct}%;background:var(--acento)"></i></div>
-    ${c.expertos.length ? `<div class="muted" style="font-size:12.5px">Conceptos que practica: ${c.expertos.join(", ")}</div>` : ""}
-    <ul class="apuntes">${c.apuntes.map(a => `<li>${esc(a)}</li>`).join("")}</ul>`}`;
+    ${c.graduado ? `<p><b>Graduado del curso.</b></p>` : `
+      <p style="margin:0 0 4px;font-size:18px;font-weight:600">Etapa ${c.etapa}: ${esc(c.titulo)}</p>
+      <p class="muted" style="margin:0 0 8px;font-size:13.5px">Práctica para el examen: <span class="num">${c.practica}/${c.practica_min}</span>${c.expertos.length ? ` · practica ${esc(c.expertos.join(", "))}` : ""}</p>
+      <div class="barra"><i style="left:0;width:${pct * 100}%;background:var(--acento)"></i></div>
+      <ul class="apuntes">${c.apuntes.map(a => `<li>${esc(a)}</li>`).join("")}</ul>`}
+    <div id="detalle-etapa"></div>`;
   window._curso = c;
 }
-function verEtapa(n) {
-  const c = window._curso; const e = c.etapas[n - 1]; const nota = c.notas[n];
-  abrir(`<h3>Etapa ${n}: ${esc(e.titulo)}</h3><p class="muted">Módulos ${esc(e.modulos)}</p>` +
-    (nota ? `<p><b>Nota: ${nota.nota}/100</b> (${esc(nota.fecha)})</p><p><b>Reconocimiento:</b> ${esc(nota.reconocimiento)}</p><p><b>Lo que aprendió en la práctica:</b> ${esc(nota.juicio)}</p>`
-          : `<p>${n < c.etapa ? "Aprobada." : n === c.etapa ? "La está estudiando ahora." : "Todavía no llegó a esta etapa."}</p>`));
-}
+$("curso").addEventListener("click", ev => {
+  const b = ev.target.closest(".etapa"); if (!b) return;
+  const c = window._curso, n = +b.dataset.e, e = c.etapas[n - 1], nota = c.notas[n];
+  $("detalle-etapa").innerHTML = `<div class="detalle-etapa"><b>Etapa ${n}: ${esc(e.titulo)}</b> <span>(módulos ${esc(e.modulos)})</span><br>` +
+    (nota ? `Nota <b class="num">${nota.nota}/100</b>. Reconocimiento: ${esc(nota.reconocimiento)}. Lo que aprendió: ${esc(nota.juicio)}`
+          : n < c.etapa ? "Aprobada." : n === c.etapa ? "La está estudiando ahora." : "Todavía no llegó a esta etapa.") + `</div>`;
+});
 
 function pintarMeta(cer) {
   if (!cer) { $("meta").innerHTML = `<p class="vacio">Sin datos.</p>`; return; }
-  const cal = cer.calibracion.filter(c => c.n >= 3);
-  const op = cer.opiniones;
-  $("meta").innerHTML = `
-    <div class="cal">${cal.length ? cal.map(c => `
-      <div class="fila-cal"><span>dice ${c.tramo}%</span>
-        <div class="barra" title="acierta ${c.acierto}% (${c.n} veces)"><i style="left:0;width:${c.acierto}%;background:${c.acierto >= EQUILIBRIO ? "var(--sube)" : c.acierto >= 50 ? "var(--ambar)" : "var(--baja)"}"></i><i style="left:${EQUILIBRIO}%;width:2px;background:#fff;opacity:.6"></i></div>
-        <span class="muted">acierta ${c.acierto}% <small>(${c.n})</small></span></div>`).join("") : `<p class="vacio">Todavía juntando datos.</p>`}</div>
-    <p style="margin:12px 0 4px">Sus últimas ${op.ultimas.length} opiniones comprobadas <span class="muted">(${op.acierto ?? "—"}% de acierto en ${op.n})</span>:</p>
-    <div class="puntos">${op.ultimas.map(v => `<i style="background:${v ? "var(--sube)" : "var(--baja)"}" title="${v ? "acertó" : "falló"}"></i>`).join("")}</div>
-    <p class="muted" style="font-size:12px;margin:8px 0 0">Verde = acertó, rojo = falló. Línea blanca: ${EQUILIBRIO.toFixed(1)}%, lo mínimo para no perder con pago ${PAGO * 100}%.</p>`;
+  const cal = cer.calibracion.filter(c => c.n >= 3), op = cer.opiniones;
+  $("meta").innerHTML = (cal.length ? cal.map(c => `
+      <div class="fila"><span class="num">dice ${c.tramo}%</span>
+        <div class="barra"><i style="left:0;width:${c.acierto}%;background:${c.acierto >= EQUILIBRIO ? "var(--sube)" : c.acierto >= 50 ? "var(--ambar)" : "var(--baja)"}"></i><i style="left:${EQUILIBRIO}%;width:2px;background:#fff"></i></div>
+        <span class="num muted">acierta ${c.acierto}% <small>(${c.n})</small></span></div>`).join("") : `<p class="vacio">Juntando datos.</p>`) +
+    `<p style="margin:20px 0 0">Sus últimas ${op.ultimas.length} opiniones comprobadas: <b class="num">${op.acierto ?? "—"}%</b> <span class="muted">de acierto en ${op.n}</span></p>
+     <div class="puntos">${op.ultimas.map((v, i) => `<i style="background:${v ? "var(--sube)" : "var(--baja)"};animation-delay:${i * 8}ms" title="${v ? "acertó" : "falló"}"></i>`).join("")}</div>`;
 }
 
 function pintarExpertos(cer) {
   const ex = (cer && cer.expertos) || [];
   $("expertos").innerHTML = ex.length ? ex.map(e => `
-    <div class="fila-cal" style="grid-template-columns:120px 1fr 120px"><span>${esc(e.nombre)}</span>
-      <div class="barra"><i style="left:0;width:${e.acierto ?? 0}%;background:${(e.acierto ?? 0) >= 50 ? "var(--sube)" : "var(--baja)"}"></i><i style="left:50%;width:1px;background:#fff;opacity:.5"></i></div>
-      <span class="muted">${e.acierto ?? "—"}% <small>(${e.n}; ${e.practica} en total)</small></span></div>`).join("")
-    : `<p class="vacio">Sin datos todavía.</p>`;
+    <div class="fila" style="grid-template-columns:120px 1fr 120px"><span>${esc(e.nombre)}</span>
+      <div class="barra"><i style="left:0;width:${e.acierto ?? 0}%;background:${(e.acierto ?? 0) >= 50 ? "var(--sube)" : "var(--baja)"}"></i><i style="left:50%;width:2px;background:#fff;opacity:.6"></i></div>
+      <span class="num muted">${e.acierto ?? "—"}% <small>(${e.n})</small></span></div>`).join("") : `<p class="vacio">Sin datos todavía.</p>`;
 }
 
 function pintarKpis(cer) {
-  if (!cer) { $("kpis").innerHTML = `<p class="vacio">Este mercado todavía no tiene cerebro.</p>`; return; }
-  const k = [
-    [`${cer.redes} × ${cer.neuronas}`, "redes × neuronas"], [`v${cer.version}`, "versión del cerebro"],
-    [cer.entradas, "entradas que mira"], [cer.repaso, "experiencias en memoria"],
-    [cer.experiencia.siestas, "siestas (consolidación)"], [`${cer.experiencia.desde_siesta}/600`, "hasta la próxima siesta"],
-    [`×${cer.velocidad}`, "velocidad de aprendizaje"], [cer.consolidacion ? "activa" : "—", "protección de neuronas"],
-    [cer.lecciones.length, "lecciones activas"],
-    [cer.patrones.filter(p => p.fase === "prueba" || p.fase === "confirmado").length, "patrones descubiertos"],
-  ];
-  $("kpis").innerHTML = k.map(([v, t]) => `<div class="kpi"><b>${esc(v)}</b><span>${esc(t)}</span></div>`).join("") +
-    `<p class="muted" style="grid-column:1/-1;font-size:12px;margin:0">Actualizado ${esc((cer.actualizado || "").replace("T", " "))}</p>`;
+  if (!cer) { $("kpis").innerHTML = `<div class="kpi"><span>Este mercado todavía no tiene cerebro.</span></div>`; return; }
+  const k = [[`${cer.redes}×${cer.neuronas}`, "redes × neuronas"], [`v${cer.version}`, "versión del cerebro"], [cer.entradas, "cosas que mira por vela"],
+    [cer.repaso.toLocaleString("es"), "experiencias en memoria"], [cer.experiencia.siestas, "siestas para consolidar"],
+    [`${cer.experiencia.desde_siesta}/600`, "hasta la próxima siesta"], [`×${cer.velocidad}`, "velocidad de aprendizaje"],
+    [cer.lecciones.length, "lecciones activas"], [cer.patrones.filter(p => p.fase === "prueba" || p.fase === "confirmado").length, "patrones descubiertos"]];
+  $("kpis").innerHTML = k.map(([v, t]) => `<div class="kpi"><b>${esc(v)}</b><span>${esc(t)}</span></div>`).join("");
 }
 
 function pintarOperaciones() {
-  $("operaciones").innerHTML = `<div class="kpis">${datos.operaciones.map(o => `
-    <div class="kpi"><span>${esc(o.nombre)}</span><b>${o.acierto != null ? o.acierto + "%" : "—"}</b>
-      <span>${o.ganadas}/${o.cerradas} ganadas · <span class="${o.resultado >= 0 ? "pos" : "neg"}">${o.resultado >= 0 ? "+" : ""}$${Number(o.resultado).toFixed(2)}</span></span></div>`).join("")}</div>
-    <div class="scroll" style="max-height:220px;margin-top:10px"><table><thead><tr><th>Fecha</th><th>Bot</th><th>Activo</th><th>Dirección</th><th>Monto</th><th>Resultado</th></tr></thead><tbody>
-    ${datos.operaciones.flatMap(o => o.ultimas.map(u => ({...u, bot: o.nombre}))).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 14).map(u => `
-      <tr><td>${esc(u.fecha)}</td><td>${esc(u.bot)}</td><td>${esc(u.activo)}</td><td>${u.direccion === "CALL" ? "↑ CALL" : "↓ PUT"}</td>
-      <td>$${u.monto}${u.practica ? " <span class=muted>(práctica)</span>" : ""}</td>
-      <td class="${u.estado === "win" ? "pos" : u.estado === "loss" ? "neg" : "muted"}">${u.estado === "win" ? "ganada" : u.estado === "loss" ? "perdida" : "abierta"}${u.resultado != null ? ` ($${Number(u.resultado).toFixed(2)})` : ""}</td></tr>`).join("")}
+  const ultimas = datos.operaciones.flatMap(o => o.ultimas.map(u => ({ ...u, bot: o.nombre }))).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 12);
+  $("operaciones").innerHTML = `<div class="kpis" style="margin-bottom:18px">${datos.operaciones.map(o => `
+      <div class="kpi"><span>${esc(o.nombre)}</span><b>${o.acierto != null ? o.acierto + "%" : "—"}</b>
+      <span class="num">${o.ganadas}/${o.cerradas} · <span class="${o.resultado >= 0 ? "pos" : "neg"}">${o.resultado >= 0 ? "+" : ""}$${Number(o.resultado).toFixed(2)}</span></span></div>`).join("")}</div>
+    <div class="desliza" style="max-height:300px"><table><thead><tr><th>Hora</th><th>Bot</th><th>Activo</th><th>Dirección</th><th class="num">Monto</th><th>Resultado</th></tr></thead><tbody>
+    ${ultimas.map(u => `<tr><td class="num">${esc(u.fecha.slice(5))}</td><td>${esc(u.bot)}</td><td>${esc(u.activo)}</td>
+      <td class="${u.direccion === "CALL" ? "pos" : "neg"}">${u.direccion === "CALL" ? "↑ sube" : "↓ baja"}</td>
+      <td class="num">$${Number(u.monto).toFixed(2)}${u.practica ? ' <span class="amb">práctica</span>' : ""}</td>
+      <td class="${u.estado === "win" ? "pos" : u.estado === "loss" ? "neg" : "muted"}">${u.estado === "win" ? "ganada" : u.estado === "loss" ? "perdida" : "abierta"}${u.resultado != null ? ` <span class="num">${Number(u.resultado) >= 0 ? "+" : ""}${Number(u.resultado).toFixed(2)}</span>` : ""}</td></tr>`).join("")}
     </tbody></table></div>`;
 }
 
-function ordenar(campo) { orden = {campo, asc: orden.campo === campo ? !orden.asc : campo === "nombre"}; pintarPatrones(); }
+document.querySelector("#c-memoria thead").addEventListener("click", ev => {
+  const th = ev.target.closest("th"); if (!th) return;
+  const campo = th.dataset.o; orden = { campo, asc: orden.campo === campo ? !orden.asc : campo === "nombre" }; pintarPatrones();
+});
+$("buscar").addEventListener("input", () => pintarPatrones());
 function pintarPatrones() {
   const cer = datos && datos.cerebros[mercado];
   if (!cer) { $("patrones").innerHTML = ""; return; }
-  const q = $("buscar").value.toLowerCase();
-  const fases = {normal: "", prueba: "🔬 a prueba", confirmado: "✅ confirmado"};
-  const lista = cer.patrones.filter(p => p.nombre.includes(q)).sort((a, b) => {
-    const x = a[orden.campo] ?? -1, y = b[orden.campo] ?? -1;
-    return (x > y ? 1 : x < y ? -1 : 0) * (orden.asc ? 1 : -1);
-  });
-  $("patrones").innerHTML = lista.map(p => `<tr onclick="explicar('${esc(p.nombre)}')">
-    <td>${esc(p.nombre)}</td><td class="${p.sesgo === "alcista" ? "pos" : p.sesgo === "bajista" ? "neg" : "muted"}">${esc(p.sesgo)}</td>
-    <td>${p.visto.toLocaleString("es")}</td><td>${p.subio ?? "—"}%</td>
-    <td>${p.reciente != null ? p.reciente + "% <span class=muted>(" + p.n_reciente + ")</span>" : "—"}</td><td>${fases[p.fase] || ""}</td></tr>`).join("");
+  const q = $("buscar").value.toLowerCase().replace(/ /g, "_");
+  const fase = { normal: "", prueba: '<span class="amb">a prueba</span>', confirmado: '<span class="pos">confirmado</span>' };
+  $("patrones").innerHTML = cer.patrones.filter(p => p.nombre.includes(q)).sort((a, b) => {
+    const x = a[orden.campo] ?? -1, y = b[orden.campo] ?? -1; return (x > y ? 1 : x < y ? -1 : 0) * (orden.asc ? 1 : -1);
+  }).map(p => `<tr data-p="${esc(p.nombre)}"><td>${esc(p.nombre.replace(/_/g, " "))}</td>
+      <td class="${p.sesgo === "alcista" ? "pos" : p.sesgo === "bajista" ? "neg" : "muted"}">${esc(p.sesgo)}</td>
+      <td class="num">${p.visto.toLocaleString("es")}</td><td class="num">${p.subio ?? "—"}%</td>
+      <td class="num">${p.reciente != null ? p.reciente + "%" : "—"}</td><td>${fase[p.fase] || ""}</td></tr>`).join("");
 }
+$("patrones").addEventListener("click", ev => { const tr = ev.target.closest("tr[data-p]"); if (tr) explicar(tr.dataset.p); });
 
 function pintarDiario(cer) {
   $("lecciones").innerHTML = cer && cer.lecciones.length
-    ? `<p style="margin:0 0 6px"><b>Lecciones activas:</b></p><ul class="apuntes" style="margin-bottom:10px">${cer.lecciones.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
+    ? `<ul class="apuntes" style="margin:0 0 14px">${cer.lecciones.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
   const items = (cer && cer.diario) || [];
   $("diario").innerHTML = items.length ? items.map(d => {
-    const k = d.fecha + d.leccion; const nuevo = !primera && !vistosDiario.has(k); vistosDiario.add(k);
-    return `<li class="${nuevo ? "nuevo" : ""}"><span class="h">${esc((d.fecha || "").slice(5, 16).replace("T", " "))}</span>${d.activo ? `<b>${esc(d.activo)}</b> · ` : ""}${d.prediccion && d.prediccion !== "-" ? `predijo ${esc(d.prediccion)}, ${esc(d.resultado)}. ` : ""}${esc(d.leccion)}</li>`;
-  }).join("") : `<li class="muted">Diario vacío.</li>`;
+    const k = "d" + d.fecha + d.leccion, nuevo = vistos.size && !vistos.has(k); vistos.add(k);
+    return `<li class="${nuevo ? "nuevo" : ""}"><span class="h">${esc((d.fecha || "").slice(11, 16))}</span><span>${d.activo ? `<b>${esc(d.activo)}</b> · ` : ""}${esc(d.leccion)}</span></li>`;
+  }).join("") : `<li><span></span><span class="muted">Diario vacío.</span></li>`;
 }
-
-function pintarEventos() {
+function pintarFlujo() {
   $("eventos").innerHTML = datos.eventos.length ? datos.eventos.map(e => {
-    const k = e.hora + e.texto; const nuevo = !primera && !vistosEventos.has(k); vistosEventos.add(k);
-    return `<li class="${nuevo ? "nuevo" : ""}"><span class="h">${esc(e.hora)}</span>${esc(e.texto)}</li>`;
-  }).join("") : `<li class="muted">Sin eventos todavía.</li>`;
+    const k = "e" + e.hora + e.texto, nuevo = vistos.size && !vistos.has(k); vistos.add(k);
+    return `<li class="${nuevo ? "nuevo" : ""}"><span class="h">${esc(e.hora)}</span><span>${esc(e.texto)}</span></li>`;
+  }).join("") : `<li><span></span><span class="muted">Sin eventos todavía.</span></li>`;
 }
-
 function pintarEntrenador() {
   $("entrenador").innerHTML = datos.entrenador.length
-    ? datos.entrenador.map(l => `<li>${esc(l)}</li>`).join("") : `<li class="muted">El entrenador aún no corrió.</li>`;
+    ? datos.entrenador.map(l => `<li><span class="h">${esc(l.slice(12, 17))}</span><span>${esc(l.slice(19))}</span></li>`).join("")
+    : `<li><span></span><span class="muted">El entrenador aún no corrió.</span></li>`;
 }
 
+/* ---------- cajón de detalles ---------- */
+const NOMBRES = { ret1: "retorno de la última vela", cuerpo: "tamaño del cuerpo de la vela", m_sup: "mecha superior", m_inf: "mecha inferior",
+  rsi14: "RSI de 14 velas", rsi2: "RSI de 2 velas", bb: "posición dentro de las bandas de Bollinger", stk: "estocástico", stk_d: "estocástico (señal)",
+  ema9: "distancia a la EMA 9", ema21: "distancia a la EMA 21", ema50: "distancia a la EMA 50", ema200: "distancia a la EMA 200",
+  pos20: "posición en el rango de las últimas 20 velas", vol: "tamaño de la vela frente a la media", h_sin: "hora del día", h_cos: "hora del día",
+  min5: "minuto dentro del bloque de 5" };
+function nombreEntrada(n) {
+  if (n.startsWith("patron:")) return "Patrón " + n.slice(7).replace(/_/g, " ");
+  if (n.startsWith("curso_")) return "Curso: " + n.slice(6).replace(/_/g, " ");
+  if (n.startsWith("mtf_")) return "Contexto: " + n.slice(4).replace(/_/g, " ");
+  return NOMBRES[n] || n.replace(/^ret(\d+)$/, (m, k) => `retorno de hace ${k} velas`);
+}
+function explicarEntrada(n) {
+  if (n.startsWith("patron:")) return explicar(n.slice(7));
+  abrir(`<h3>${esc(nombreEntrada(n))}</h3><p>Una de las cosas que la red mira en cada vela${n.startsWith("curso_") ? ", aprendida en el curso de análisis técnico" : n.startsWith("mtf_") ? ", tomada de las velas de 5 y 15 minutos" : ""}.</p>`);
+}
+function explicar(nombre) {
+  const p = ((datos && datos.cerebros[mercado]) || {}).patrones?.find(x => x.nombre === nombre);
+  if (!p) return;
+  abrir(`<h3>${esc(p.nombre.replace(/_/g, " "))}</h3><p>${esc(p.explicacion)}</p>
+    <p class="muted">Teoría: <b>${esc(p.sesgo)}</b>. En su memoria lo vio <b class="num">${p.visto.toLocaleString("es")}</b> veces y después subió el <b class="num">${p.subio ?? "—"}%</b>. En sus últimas ${p.n_reciente} apariciones: <span class="num">${p.reciente ?? "—"}%</span>.</p>`);
+}
+function abrir(html) { $("cajon-txt").innerHTML = html; $("cajon").classList.add("abierto"); $("cajon").setAttribute("aria-hidden", "false"); $("cerrar").focus(); }
+$("cerrar").addEventListener("click", () => { $("cajon").classList.remove("abierto"); $("cajon").setAttribute("aria-hidden", "true"); });
+addEventListener("keydown", ev => { if (ev.key === "Escape") $("cerrar").click(); });
+
+/* ---------- entrada de las cámaras al hacer scroll ---------- */
+const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("visible"); obs.unobserve(e.target); } }), { threshold: 0.12 });
+document.querySelectorAll(".camara").forEach(c => obs.observe(c));
+
+if (window.lucide) lucide.createIcons();
 actualizar();
 setInterval(actualizar, 2000);
 </script>
