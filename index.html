@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuro Trade</title>
+<style>
+:root {
+  --bg: #0e1116; --panel: #161b22; --panel2: #1c232d; --line: #2a3340; --text: #e6edf3;
+  --muted: #8b98a8; --sube: #2ea36b; --baja: #e5534b; --ambar: #d4a72c; --acento: #6aa9ff;
+  --neutro: #6e7b8b; --radio: 12px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 12px;
+  align-items: center; padding: 12px 20px; background: rgba(14,17,22,.92);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+header h1 { margin: 0; font-size: 22px; letter-spacing: .2px; }
+.vivo { width: 9px; height: 9px; border-radius: 50%; background: var(--sube); }
+.vivo.caido { background: var(--baja); }
+.muted { color: var(--muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.chip { font-size: 12px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.chip.ok { color: var(--sube); border-color: rgba(46,163,107,.4); }
+.chip.mal { color: var(--baja); border-color: rgba(229,83,75,.4); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; color: var(--muted); border: 0; padding: 6px 12px; cursor: pointer; font: inherit; }
+.seg button.on { background: var(--panel2); color: var(--text); }
+main { max-width: 1320px; margin: 0 auto; padding: 18px 20px 60px; display: grid; gap: 16px;
+  grid-template-columns: repeat(12, 1fr); }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radio);
+  padding: 16px; min-width: 0; }
+section h2 { margin: 0 0 4px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+.ayuda { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; }
+.c12 { grid-column: span 12; } .c8 { grid-column: span 8; } .c7 { grid-column: span 7; }
+.c6 { grid-column: span 6; } .c5 { grid-column: span 5; } .c4 { grid-column: span 4; }
+@media (max-width: 980px) { .c8, .c7, .c6, .c5, .c4 { grid-column: span 12; } }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.tab { border: 1px solid var(--line); background: var(--panel2); color: var(--muted); border-radius: 8px;
+  padding: 5px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.tab.on { color: var(--text); border-color: var(--acento); }
+.pensando { display: grid; grid-template-columns: 220px 1fr; gap: 18px; }
+@media (max-width: 700px) { .pensando { grid-template-columns: 1fr; } }
+.medidor { text-align: center; }
+.medidor .num { font-size: 40px; font-weight: 700; }
+.barra { height: 10px; background: var(--panel2); border-radius: 99px; overflow: hidden; position: relative; }
+.barra > i { position: absolute; top: 0; bottom: 0; }
+.conclusion { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-weight: 600; font-size: 13.5px; }
+.conclusion.opero { background: rgba(46,163,107,.15); color: #7ee2b0; }
+.conclusion.practica { background: rgba(212,167,44,.15); color: #f0cf6c; }
+.conclusion.descarto { background: var(--panel2); color: var(--muted); }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.checks li { display: grid; grid-template-columns: 22px 150px 1fr; gap: 6px; align-items: start;
+  padding: 6px 8px; background: var(--panel2); border-radius: 8px; font-size: 13px; }
+@media (max-width: 700px) { .checks li { grid-template-columns: 22px 1fr; } .checks li .d { grid-column: 2; } }
+.opiniones { display: grid; gap: 7px; margin-top: 14px; }
+.op { display: grid; grid-template-columns: 110px 1fr 60px; gap: 8px; align-items: center; font-size: 13px; }
+.op .barra > i.centro { left: 50%; width: 1px; background: var(--muted); opacity: .6; }
+svg text { fill: var(--muted); font-size: 11px; }
+.red-tip { min-height: 38px; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.etapas { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin: 10px 0; }
+.etapa { height: 34px; border-radius: 6px; background: var(--panel2); display: grid; place-items: center;
+  font-size: 12px; color: var(--muted); border: 1px solid var(--line); cursor: pointer; }
+.etapa.hecha { background: rgba(46,163,107,.2); color: #7ee2b0; border-color: rgba(46,163,107,.35); }
+.etapa.actual { border-color: var(--acento); color: var(--text); }
+ul.apuntes { margin: 8px 0 0; padding-left: 18px; color: #c9d4df; font-size: 13px; }
+.cal { display: grid; gap: 6px; }
+.fila-cal { display: grid; grid-template-columns: 70px 1fr 90px; gap: 8px; align-items: center; font-size: 12.5px; }
+.puntos { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 10px; }
+.puntos i { width: 9px; height: 9px; border-radius: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; cursor: pointer; user-select: none; }
+tbody tr { cursor: pointer; } tbody tr:hover { background: var(--panel2); }
+.scroll { max-height: 360px; overflow: auto; }
+input[type=search] { width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel2); color: var(--text); margin-bottom: 10px; font: inherit; }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 380px; overflow: auto; }
+.feed li { padding: 7px 9px; background: var(--panel2); border-radius: 8px; font-size: 12.5px; }
+.feed .h { color: var(--muted); font-size: 11.5px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.feed li.nuevo { animation: brillo 1.6s ease-out; }
+@keyframes brillo { from { background: rgba(106,169,255,.25); } to { background: var(--panel2); } }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--panel2); border-radius: 10px; padding: 10px 12px; }
+.kpi b { display: block; font-size: 20px; }
+.kpi span { color: var(--muted); font-size: 12px; }
+.pos { color: var(--sube); } .neg { color: var(--baja); }
+.vacio { color: var(--muted); font-style: italic; padding: 8px 0; }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px;
+  max-width: 520px; padding: 18px; }
+dialog::backdrop { background: rgba(0,0,0,.6); }
+.btn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; font: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <span class="vivo" id="vivo" title="Conexión con el bot"></span>
+  <h1>🧠 Neuro Trade</h1>
+  <span class="muted" id="hora">conectando…</span>
+  <div class="seg" role="tablist" aria-label="Mercado">
+    <button id="m-otc" class="on" onclick="elegirMercado('otc')">OTC</button>
+    <button id="m-real" onclick="elegirMercado('real')">Mercado real</button>
+  </div>
+  <div class="chips" id="servicios"></div>
+</header>
+<div id="sin-bot" style="display:none;max-width:760px;margin:40px auto;padding:0 20px">
+  <section>
+    <h2>🔌 Conecta Neuro Trade con tu bot</h2>
+    <p>Neuro Trade muestra en vivo el cerebro de tu bot de trading. Los datos no se guardan en internet:
+      la página se conecta directamente al bot que corre en tu computadora.</p>
+    <ol class="apuntes">
+      <li>Abre esta página en el mismo PC donde corre el bot.</li>
+      <li>Ejecuta el bot (<code>./ejecutar_bot.sh</code>) o deja encendidos sus servicios: el panel se prende solo.</li>
+      <li>Si el navegador pregunta si la página puede acceder a la red local, acepta.</li>
+    </ol>
+    <p class="muted" style="font-size:12.5px">Dirección del bot:
+      <input id="api-url" style="width:240px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--text)">
+      <button class="btn" onclick="guardarApi()">Conectar</button></p>
+  </section>
+</div>
+
+<main>
+  <section class="c12">
+    <h2>👁️ Pensando ahora</h2>
+    <p class="ayuda">Lo que el bot analizó en la última vela de cada divisa: qué tan seguro está de que el precio suba en 3 minutos, qué opina cada uno de sus "expertos" y qué comprobaciones pasó antes de decidir.</p>
+    <div class="tabs" id="tabs-activos"></div>
+    <div id="pensando"><p class="vacio">Esperando el primer análisis del bot…</p></div>
+  </section>
+
+  <section class="c7">
+    <h2>🔗 Neuronas</h2>
+    <p class="ayuda">Izquierda: lo que más pesó en esta vela. Centro: las neuronas (verde = activa hacia "sube", rojo = hacia "baja"). Derecha: la probabilidad final. Pasa el cursor sobre una neurona o una entrada para ver el detalle.</p>
+    <svg id="red" viewBox="0 0 640 380" width="100%" role="img" aria-label="Red neuronal"></svg>
+    <div class="red-tip" id="red-tip">Pasa el cursor sobre la red.</div>
+  </section>
+
+  <section class="c5">
+    <h2>📚 Curso de análisis técnico</h2>
+    <p class="ayuda">El bot estudia el curso por etapas. En cada una practica con el mercado y da un examen (aprueba con 70/100). Haz clic en una etapa para ver su nota.</p>
+    <div id="curso"></div>
+  </section>
+
+  <section class="c6">
+    <h2>🪞 Metacognición: ¿su seguridad se cumple?</h2>
+    <p class="ayuda">Para cada nivel de seguridad, cuánto acierta de verdad. Una persona con buena metacognición acierta lo que dice. La línea marca el equilibrio para no perder.</p>
+    <div id="meta"></div>
+  </section>
+
+  <section class="c6">
+    <h2>🗣️ Expertos y su fiabilidad</h2>
+    <p class="ayuda">Cada experto opina en cada vela y 3 minutos después se comprueba si acertó. Pesa más en las decisiones el que más supera el azar (50%).</p>
+    <div id="expertos"></div>
+  </section>
+
+  <section class="c4">
+    <h2>📊 Estado del cerebro</h2>
+    <p class="ayuda">Memoria, aprendizaje y "sueño" del bot.</p>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="c8">
+    <h2>💰 Operaciones en demo</h2>
+    <p class="ayuda">Resultados de cada bot. Las operaciones de práctica del curso se hacen con $1.</p>
+    <div id="operaciones"></div>
+  </section>
+
+  <section class="c7">
+    <h2>📖 Memoria de patrones</h2>
+    <p class="ayuda">Todo lo que recuerda de cada patrón de vela: cuántas veces lo vio y cuántas veces subió el precio después. Haz clic en un patrón para ver qué significa.</p>
+    <input type="search" id="buscar" placeholder="Buscar patrón…" oninput="pintarPatrones()">
+    <div class="scroll"><table><thead><tr>
+      <th onclick="ordenar('nombre')">Patrón</th><th onclick="ordenar('sesgo')">Teoría</th>
+      <th onclick="ordenar('visto')">Visto</th><th onclick="ordenar('subio')">Subió después</th>
+      <th onclick="ordenar('reciente')">Últimas 150</th><th onclick="ordenar('fase')">Estado</th>
+    </tr></thead><tbody id="patrones"></tbody></table></div>
+  </section>
+
+  <section class="c5">
+    <h2>✍️ Diario, lecciones y descubrimientos</h2>
+    <p class="ayuda">Lo que el bot escribe cuando se equivoca, aprende una lección, descubre un patrón, duerme o aprueba una etapa.</p>
+    <div id="lecciones"></div>
+    <ul class="feed" id="diario"></ul>
+  </section>
+
+  <section class="c7">
+    <h2>⚡ Flujo en vivo</h2>
+    <p class="ayuda">Cada decisión y aprendizaje del bot, al momento.</p>
+    <ul class="feed" id="eventos"></ul>
+  </section>
+
+  <section class="c5">
+    <h2>🏋️ Entrenador continuo</h2>
+    <p class="ayuda">Cada 2 horas prueba cerebros nuevos y solo cambia el actual si uno es mejor en dos exámenes justos.</p>
+    <ul class="feed" id="entrenador"></ul>
+  </section>
+</main>
+
+<dialog id="dlg"><div id="dlg-txt"></div><p style="text-align:right;margin:12px 0 0"><button class="btn" onclick="dlg.close()">Cerrar</button></p></dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let datos = null, mercado = "otc", activoSel = null, orden = {campo: "visto", asc: false};
+// Servida por el propio bot: misma dirección. Desde GitHub Pages: el bot de este PC.
+const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
+let API = LOCAL ? "" : "http://127.0.0.1:8765";
+try { if (!LOCAL) API = localStorage.getItem("neuro_api") || API; } catch (e) {}
+function guardarApi() {
+  API = $("api-url").value.trim().replace(/\/$/, "");
+  try { localStorage.setItem("neuro_api", API); } catch (e) {}
+  actualizar();
+}
+let vistosEventos = new Set(), vistosDiario = new Set(), primera = true;
+const PAGO = 0.83, EQUILIBRIO = 100 / (1 + PAGO);
+
+function elegirMercado(m) {
+  mercado = m; activoSel = null;
+  $("m-otc").classList.toggle("on", m === "otc"); $("m-real").classList.toggle("on", m === "real");
+  pintar();
+}
+
+async function actualizar() {
+  try {
+    const r = await fetch(API + "/api/estado", {cache: "no-store"});
+    datos = await r.json();
+    $("vivo").classList.remove("caido");
+    $("sin-bot").style.display = "none"; document.querySelector("main").style.display = "";
+    $("hora").textContent = "actualizado " + datos.hora;
+    pintar();
+  } catch (e) {
+    $("vivo").classList.add("caido");
+    $("hora").textContent = "sin conexión con el bot";
+    if (!datos) {
+      $("sin-bot").style.display = ""; document.querySelector("main").style.display = "none";
+      if (document.activeElement !== $("api-url")) $("api-url").value = API || location.origin;
+    }
+  }
+}
+
+function pintar() {
+  if (!datos) return;
+  const cer = datos.cerebros[mercado];
+  pintarServicios(); pintarPensando(); pintarCurso(cer); pintarMeta(cer); pintarExpertos(cer);
+  pintarKpis(cer); pintarOperaciones(); pintarPatrones(); pintarDiario(cer); pintarEventos(); pintarEntrenador();
+  primera = false;
+}
+
+function pintarServicios() {
+  const nombres = {"bot-neuronal-otc": "Neuronal OTC", "bot-neuronal-real": "Neuronal real",
+                   "bot-ml-real": "ML real", "bot-entrenador": "Entrenador"};
+  $("servicios").innerHTML = Object.entries(datos.servicios).map(([k, v]) =>
+    `<span class="chip ${v === "active" ? "ok" : "mal"}" title="${esc(k)}: ${esc(v)}">${v === "active" ? "●" : "○"} ${esc(nombres[k] || k)}</span>`).join("");
+}
+
+function activosDelMercado() {
+  const a = (datos.en_vivo && datos.en_vivo.activos) || {};
+  return Object.values(a).filter(x => x.mercado === mercado).sort((x, y) => y.t - x.t);
+}
+
+function pintarPensando() {
+  const lista = activosDelMercado();
+  if (!lista.length) {
+    $("tabs-activos").innerHTML = "";
+    $("pensando").innerHTML = `<p class="vacio">Todavía no hay análisis en ${mercado === "otc" ? "OTC" : "mercado real"}. ${mercado === "real" ? "El mercado real se analiza cuando IQ Option lo abre." : "El bot analiza al cierre de cada vela de 1 minuto."}</p>`;
+    pintarRed(null); return;
+  }
+  if (!activoSel || !lista.find(x => x.activo === activoSel)) activoSel = lista[0].activo;
+  $("tabs-activos").innerHTML = lista.map(x => {
+    const hace = Math.round(Date.now() / 1000 - x.t);
+    return `<button class="tab ${x.activo === activoSel ? "on" : ""}" onclick="activoSel='${esc(x.activo)}';pintar()">${esc(x.activo)} <span class="muted">hace ${hace}s</span></button>`;
+  }).join("");
+  const x = lista.find(a => a.activo === activoSel);
+  const p = (x.prob ?? 0.5) * 100;
+  const sube = p >= 50;
+  const tipo = /^OPERO/.test(x.conclusion) ? "opero" : /^PRÁCTICA/.test(x.conclusion) ? "practica" : "descarto";
+  const ops = Object.entries(x.opiniones || {});
+  const fiab = {};
+  ((datos.cerebros[mercado] || {}).expertos || []).forEach(e => fiab[e.nombre] = e);
+  $("pensando").innerHTML = `
+    <div class="pensando">
+      <div class="medidor">
+        <div class="muted">Probabilidad de que suba</div>
+        <div class="num ${sube ? "pos" : "neg"}">${p.toFixed(1)}%</div>
+        <div class="barra"><i style="left:0;width:${p}%;background:${sube ? "var(--sube)" : "var(--baja)"}"></i></div>
+        <div class="muted" style="margin-top:6px">${sube ? "↑ cree que sube" : "↓ cree que baja"}${x.p_red != null ? ` · la red sola: ${(x.p_red * 100).toFixed(1)}%` : ""}</div>
+        <div class="conclusion ${tipo}">💭 ${esc(x.conclusion)}</div>
+        ${x.patrones && x.patrones.length ? `<div class="muted" style="margin-top:10px;text-align:left">Patrones en esta vela: ${x.patrones.map(n => `<a href="#" onclick="explicar('${esc(n)}');return false" style="color:var(--acento)">${esc(n)}</a>`).join(", ")}</div>` : ""}
+        ${x.aprendidas ? `<div class="muted" style="margin-top:6px;text-align:left">✍️ Aprendió de ${x.aprendidas} predicción(es) vencida(s): ${x.aciertos_ahora} acertada(s)</div>` : ""}
+      </div>
+      <div>
+        <ul class="checks">${(x.checks || []).map(c => `<li><span>${c.ok ? "✅" : "❌"}</span><b>${esc(c.nombre)}</b><span class="d muted">${esc(c.detalle)}</span></li>`).join("")}</ul>
+        <div class="opiniones">${ops.map(([k, v]) => {
+          const d = ((v ?? 0.5) - 0.5) * 100, w = Math.min(Math.abs(d) * 4, 50);
+          const f = fiab[k];
+          return `<div class="op"><span>${esc(k)}</span>
+            <div class="barra" title="${(v * 100).toFixed(1)}% de que suba"><i class="centro"></i><i style="${d >= 0 ? `left:50%;width:${w}%;background:var(--sube)` : `right:50%;width:${w}%;background:var(--baja)`}"></i></div>
+            <span class="muted" title="fiabilidad comprobada">${f && f.acierto != null ? f.acierto.toFixed(0) + "%" : "—"}</span></div>`;
+        }).join("")}</div>
+        <p class="muted" style="font-size:12px;margin:6px 0 0">Barras: hacia la derecha opina "sube", hacia la izquierda "baja". A la derecha, cuánto acierta ese experto.</p>
+      </div>
+    </div>`;
+  pintarRed(x);
+}
+
+function color(v) {
+  const a = Math.min(Math.abs(v), 1);
+  return v >= 0 ? `rgba(46,163,107,${0.25 + a * 0.75})` : `rgba(229,83,75,${0.25 + a * 0.75})`;
+}
+
+function pintarRed(x) {
+  const svg = $("red");
+  if (!x || !x.neuronas) { svg.innerHTML = `<text x="20" y="40">Esperando un análisis…</text>`; return; }
+  // Solo se redibuja si llegó un análisis nuevo (así el cursor no pierde lo que señala)
+  if (window._red && window._red.t === x.t && window._red.activo === x.activo && svg.childElementCount) return;
+  const n = x.neuronas, ent = n.entradas, act = n.activacion, w2 = n.peso_salida;
+  const W = 640, H = 380, xe = 150, xn = 400, xs = 590;
+  const ye = i => 20 + i * (H - 40) / Math.max(ent.length - 1, 1);
+  const yn = j => 14 + j * (H - 28) / Math.max(act.length - 1, 1);
+  let s = "";
+  // Fuerza relativa: cada línea se compara con la conexión más fuerte de la red
+  const maxW1 = Math.max(...n.conexiones.flat().map(Math.abs), 1e-6);
+  const maxOut = Math.max(...act.map((a, j) => Math.abs(a * w2[j])), 1e-6);
+  ent.forEach((e, i) => n.conexiones[i].forEach((w, j) => {
+    const f = Math.abs(w) / maxW1;
+    if (f < 0.35) return;  // solo las conexiones importantes
+    s += `<line x1="${xe}" y1="${ye(i)}" x2="${xn}" y2="${yn(j)}" stroke="${w > 0 ? "#2ea36b" : "#e5534b"}" stroke-opacity="${0.12 + f * 0.5}" stroke-width="${0.6 + f * 2}" class="c-e${i} c-n${j}"/>`;
+  }));
+  act.forEach((a, j) => {
+    const v = a * w2[j], f = Math.abs(v) / maxOut;
+    s += `<line x1="${xn}" y1="${yn(j)}" x2="${xs}" y2="${H / 2}" stroke="${v > 0 ? "#2ea36b" : "#e5534b"}" stroke-opacity="${0.15 + f * 0.75}" stroke-width="${0.6 + f * 3.5}" class="c-n${j}"/>`;
+  });
+  ent.forEach((e, i) => {
+    s += `<g style="cursor:pointer" onmouseenter="tip('entrada',${i})" onclick="explicarEntrada('${esc(e.nombre)}')"><circle cx="${xe}" cy="${ye(i)}" r="7" fill="${color(e.aporte * 3)}"/>
+      <text x="${xe - 12}" y="${ye(i) + 4}" text-anchor="end">${esc(e.nombre.replace("patron:", "🕯️ ").replace("curso_", "📚 ").replace("mtf_", "⏱️ "))}</text></g>`;
+  });
+  act.forEach((a, j) => {
+    s += `<circle cx="${xn}" cy="${yn(j)}" r="${5 + Math.abs(a) * 5}" fill="${color(a * Math.sign(w2[j] || 1))}" stroke="#0e1116" style="cursor:pointer" onmouseenter="tip('neurona',${j})"/>`;
+  });
+  const p = x.p_red ?? x.prob ?? 0.5;
+  s += `<circle cx="${xs}" cy="${H / 2}" r="22" fill="${color((p - 0.5) * 12)}"/>
+    <text x="${xs}" y="${H / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:700">${(p * 100).toFixed(0)}%</text>
+    <text x="${xs}" y="${H / 2 + 40}" text-anchor="middle">sube</text>`;
+  svg.innerHTML = s;
+  window._red = x;
+}
+
+function tip(tipo, i) {
+  const n = window._red && window._red.neuronas; if (!n) return;
+  document.querySelectorAll("#red line").forEach(l => l.style.opacity = "");
+  const clase = tipo === "entrada" ? `c-e${i}` : `c-n${i}`;
+  document.querySelectorAll("#red line").forEach(l => { if (!l.classList.contains(clase)) l.style.opacity = 0.08; });
+  if (tipo === "entrada") {
+    const e = n.entradas[i];
+    $("red-tip").innerHTML = `<b>${esc(e.nombre)}</b>: valor normalizado ${e.valor} · empuja ${e.aporte >= 0 ? "hacia <span class=pos>sube</span>" : "hacia <span class=neg>baja</span>"} (${e.aporte}). Haz clic para ver qué es.`;
+  } else {
+    $("red-tip").innerHTML = `<b>Neurona ${i + 1}</b>: activación ${n.activacion[i]} (de −1 a 1) · su voto en la salida pesa ${n.peso_salida[i]} → aporta ${(n.activacion[i] * n.peso_salida[i]).toFixed(3)} ${n.activacion[i] * n.peso_salida[i] >= 0 ? "a <span class=pos>sube</span>" : "a <span class=neg>baja</span>"}.`;
+  }
+}
+
+const NOMBRES = {ret1: "retorno de la última vela", cuerpo: "tamaño del cuerpo", m_sup: "mecha superior",
+  m_inf: "mecha inferior", rsi14: "RSI 14", rsi2: "RSI 2", bb: "posición en Bollinger", stk: "estocástico",
+  ema9: "distancia a la EMA9", ema21: "distancia a la EMA21", ema50: "distancia a la EMA50", ema200: "distancia a la EMA200",
+  pos20: "posición en el rango de 20 velas", vol: "tamaño de la vela vs. la media", h_sin: "hora del día", h_cos: "hora del día", min5: "minuto dentro del bloque de 5"};
+function explicarEntrada(nombre) {
+  if (nombre.startsWith("patron:")) return explicar(nombre.slice(7));
+  const base = nombre.replace(/^ret(\d+)$/, (m, k) => `retorno de hace ${k} velas`);
+  abrir(`<h3>${esc(nombre)}</h3><p>${esc(NOMBRES[nombre] || base)}${nombre.startsWith("curso_") ? " — concepto del curso de análisis técnico." : ""}${nombre.startsWith("mtf_") ? " — contexto de 5 y 15 minutos." : ""}</p>`);
+}
+function explicar(nombre) {
+  const p = ((datos.cerebros[mercado] || {}).patrones || []).find(x => x.nombre === nombre);
+  if (!p) return;
+  abrir(`<h3>🕯️ ${esc(p.nombre)}</h3><p>${esc(p.explicacion)}</p>
+    <p class="muted">Teoría: <b>${esc(p.sesgo)}</b>. En su memoria lo vio <b>${p.visto}</b> veces; después subió el <b>${p.subio ?? "—"}%</b>. En sus últimas ${p.n_reciente} apariciones: ${p.reciente ?? "—"}%. Estado: ${esc(p.fase)}.</p>`);
+}
+function abrir(html) { $("dlg-txt").innerHTML = html; $("dlg").showModal(); }
+
+function pintarCurso(cer) {
+  const c = cer && cer.curso;
+  if (!c) { $("curso").innerHTML = `<p class="vacio">El bot todavía no empezó el curso en este mercado.</p>`; return; }
+  const pct = c.practica / c.practica_min * 100;
+  $("curso").innerHTML = `
+    <div class="etapas">${c.etapas.map(e => {
+      const nota = c.notas[e.n];
+      const hecha = nota && nota.nota >= 70, actual = e.n === c.etapa && !c.graduado;
+      return `<div class="etapa ${hecha ? "hecha" : ""} ${actual ? "actual" : ""}" title="${esc(e.titulo)}" onclick="verEtapa(${e.n})">${hecha ? "✓" : e.n}</div>`;
+    }).join("")}</div>
+    ${c.graduado ? `<p><b>🏅 Graduado del curso.</b></p>` : `
+    <p style="margin:6px 0"><b>Etapa ${c.etapa}/${c.total}: ${esc(c.titulo)}</b> <span class="muted">(módulos ${esc(c.modulos)})</span></p>
+    <div class="muted" style="font-size:12.5px">Práctica para el examen: ${c.practica}/${c.practica_min} opiniones comprobadas</div>
+    <div class="barra" style="margin:6px 0 4px"><i style="left:0;width:${pct}%;background:var(--acento)"></i></div>
+    ${c.expertos.length ? `<div class="muted" style="font-size:12.5px">Conceptos que practica: ${c.expertos.join(", ")}</div>` : ""}
+    <ul class="apuntes">${c.apuntes.map(a => `<li>${esc(a)}</li>`).join("")}</ul>`}`;
+  window._curso = c;
+}
+function verEtapa(n) {
+  const c = window._curso; const e = c.etapas[n - 1]; const nota = c.notas[n];
+  abrir(`<h3>Etapa ${n}: ${esc(e.titulo)}</h3><p class="muted">Módulos ${esc(e.modulos)}</p>` +
+    (nota ? `<p><b>Nota: ${nota.nota}/100</b> (${esc(nota.fecha)})</p><p><b>Reconocimiento:</b> ${esc(nota.reconocimiento)}</p><p><b>Lo que aprendió en la práctica:</b> ${esc(nota.juicio)}</p>`
+          : `<p>${n < c.etapa ? "Aprobada." : n === c.etapa ? "La está estudiando ahora." : "Todavía no llegó a esta etapa."}</p>`));
+}
+
+function pintarMeta(cer) {
+  if (!cer) { $("meta").innerHTML = `<p class="vacio">Sin datos.</p>`; return; }
+  const cal = cer.calibracion.filter(c => c.n >= 3);
+  const op = cer.opiniones;
+  $("meta").innerHTML = `
+    <div class="cal">${cal.length ? cal.map(c => `
+      <div class="fila-cal"><span>dice ${c.tramo}%</span>
+        <div class="barra" title="acierta ${c.acierto}% (${c.n} veces)"><i style="left:0;width:${c.acierto}%;background:${c.acierto >= EQUILIBRIO ? "var(--sube)" : c.acierto >= 50 ? "var(--ambar)" : "var(--baja)"}"></i><i style="left:${EQUILIBRIO}%;width:2px;background:#fff;opacity:.6"></i></div>
+        <span class="muted">acierta ${c.acierto}% <small>(${c.n})</small></span></div>`).join("") : `<p class="vacio">Todavía juntando datos.</p>`}</div>
+    <p style="margin:12px 0 4px">Sus últimas ${op.ultimas.length} opiniones comprobadas <span class="muted">(${op.acierto ?? "—"}% de acierto en ${op.n})</span>:</p>
+    <div class="puntos">${op.ultimas.map(v => `<i style="background:${v ? "var(--sube)" : "var(--baja)"}" title="${v ? "acertó" : "falló"}"></i>`).join("")}</div>
+    <p class="muted" style="font-size:12px;margin:8px 0 0">Verde = acertó, rojo = falló. Línea blanca: ${EQUILIBRIO.toFixed(1)}%, lo mínimo para no perder con pago ${PAGO * 100}%.</p>`;
+}
+
+function pintarExpertos(cer) {
+  const ex = (cer && cer.expertos) || [];
+  $("expertos").innerHTML = ex.length ? ex.map(e => `
+    <div class="fila-cal" style="grid-template-columns:120px 1fr 120px"><span>${esc(e.nombre)}</span>
+      <div class="barra"><i style="left:0;width:${e.acierto ?? 0}%;background:${(e.acierto ?? 0) >= 50 ? "var(--sube)" : "var(--baja)"}"></i><i style="left:50%;width:1px;background:#fff;opacity:.5"></i></div>
+      <span class="muted">${e.acierto ?? "—"}% <small>(${e.n}; ${e.practica} en total)</small></span></div>`).join("")
+    : `<p class="vacio">Sin datos todavía.</p>`;
+}
+
+function pintarKpis(cer) {
+  if (!cer) { $("kpis").innerHTML = `<p class="vacio">Este mercado todavía no tiene cerebro.</p>`; return; }
+  const k = [
+    [`${cer.redes} × ${cer.neuronas}`, "redes × neuronas"], [`v${cer.version}`, "versión del cerebro"],
+    [cer.entradas, "entradas que mira"], [cer.repaso, "experiencias en memoria"],
+    [cer.experiencia.siestas, "siestas (consolidación)"], [`${cer.experiencia.desde_siesta}/600`, "hasta la próxima siesta"],
+    [`×${cer.velocidad}`, "velocidad de aprendizaje"], [cer.consolidacion ? "activa" : "—", "protección de neuronas"],
+    [cer.lecciones.length, "lecciones activas"],
+    [cer.patrones.filter(p => p.fase === "prueba" || p.fase === "confirmado").length, "patrones descubiertos"],
+  ];
+  $("kpis").innerHTML = k.map(([v, t]) => `<div class="kpi"><b>${esc(v)}</b><span>${esc(t)}</span></div>`).join("") +
+    `<p class="muted" style="grid-column:1/-1;font-size:12px;margin:0">Actualizado ${esc((cer.actualizado || "").replace("T", " "))}</p>`;
+}
+
+function pintarOperaciones() {
+  $("operaciones").innerHTML = `<div class="kpis">${datos.operaciones.map(o => `
+    <div class="kpi"><span>${esc(o.nombre)}</span><b>${o.acierto != null ? o.acierto + "%" : "—"}</b>
+      <span>${o.ganadas}/${o.cerradas} ganadas · <span class="${o.resultado >= 0 ? "pos" : "neg"}">${o.resultado >= 0 ? "+" : ""}$${Number(o.resultado).toFixed(2)}</span></span></div>`).join("")}</div>
+    <div class="scroll" style="max-height:220px;margin-top:10px"><table><thead><tr><th>Fecha</th><th>Bot</th><th>Activo</th><th>Dirección</th><th>Monto</th><th>Resultado</th></tr></thead><tbody>
+    ${datos.operaciones.flatMap(o => o.ultimas.map(u => ({...u, bot: o.nombre}))).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 14).map(u => `
+      <tr><td>${esc(u.fecha)}</td><td>${esc(u.bot)}</td><td>${esc(u.activo)}</td><td>${u.direccion === "CALL" ? "↑ CALL" : "↓ PUT"}</td>
+      <td>$${u.monto}${u.practica ? " <span class=muted>(práctica)</span>" : ""}</td>
+      <td class="${u.estado === "win" ? "pos" : u.estado === "loss" ? "neg" : "muted"}">${u.estado === "win" ? "ganada" : u.estado === "loss" ? "perdida" : "abierta"}${u.resultado != null ? ` ($${Number(u.resultado).toFixed(2)})` : ""}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+
+function ordenar(campo) { orden = {campo, asc: orden.campo === campo ? !orden.asc : campo === "nombre"}; pintarPatrones(); }
+function pintarPatrones() {
+  const cer = datos && datos.cerebros[mercado];
+  if (!cer) { $("patrones").innerHTML = ""; return; }
+  const q = $("buscar").value.toLowerCase();
+  const fases = {normal: "", prueba: "🔬 a prueba", confirmado: "✅ confirmado"};
+  const lista = cer.patrones.filter(p => p.nombre.includes(q)).sort((a, b) => {
+    const x = a[orden.campo] ?? -1, y = b[orden.campo] ?? -1;
+    return (x > y ? 1 : x < y ? -1 : 0) * (orden.asc ? 1 : -1);
+  });
+  $("patrones").innerHTML = lista.map(p => `<tr onclick="explicar('${esc(p.nombre)}')">
+    <td>${esc(p.nombre)}</td><td class="${p.sesgo === "alcista" ? "pos" : p.sesgo === "bajista" ? "neg" : "muted"}">${esc(p.sesgo)}</td>
+    <td>${p.visto.toLocaleString("es")}</td><td>${p.subio ?? "—"}%</td>
+    <td>${p.reciente != null ? p.reciente + "% <span class=muted>(" + p.n_reciente + ")</span>" : "—"}</td><td>${fases[p.fase] || ""}</td></tr>`).join("");
+}
+
+function pintarDiario(cer) {
+  $("lecciones").innerHTML = cer && cer.lecciones.length
+    ? `<p style="margin:0 0 6px"><b>Lecciones activas:</b></p><ul class="apuntes" style="margin-bottom:10px">${cer.lecciones.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : "";
+  const items = (cer && cer.diario) || [];
+  $("diario").innerHTML = items.length ? items.map(d => {
+    const k = d.fecha + d.leccion; const nuevo = !primera && !vistosDiario.has(k); vistosDiario.add(k);
+    return `<li class="${nuevo ? "nuevo" : ""}"><span class="h">${esc((d.fecha || "").slice(5, 16).replace("T", " "))}</span>${d.activo ? `<b>${esc(d.activo)}</b> · ` : ""}${d.prediccion && d.prediccion !== "-" ? `predijo ${esc(d.prediccion)}, ${esc(d.resultado)}. ` : ""}${esc(d.leccion)}</li>`;
+  }).join("") : `<li class="muted">Diario vacío.</li>`;
+}
+
+function pintarEventos() {
+  $("eventos").innerHTML = datos.eventos.length ? datos.eventos.map(e => {
+    const k = e.hora + e.texto; const nuevo = !primera && !vistosEventos.has(k); vistosEventos.add(k);
+    return `<li class="${nuevo ? "nuevo" : ""}"><span class="h">${esc(e.hora)}</span>${esc(e.texto)}</li>`;
+  }).join("") : `<li class="muted">Sin eventos todavía.</li>`;
+}
+
+function pintarEntrenador() {
+  $("entrenador").innerHTML = datos.entrenador.length
+    ? datos.entrenador.map(l => `<li>${esc(l)}</li>`).join("") : `<li class="muted">El entrenador aún no corrió.</li>`;
+}
+
+actualizar();
+setInterval(actualizar, 2000);
+</script>
+</body>
+</html>
