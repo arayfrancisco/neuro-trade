@@ -260,7 +260,7 @@ footer { text-align: center; color: var(--dim); font-size: 12.5px; padding: 30px
 
   <div class="hud lectura" aria-label="Comprobaciones de la última vela"><ul id="checks"></ul></div>
 
-  <div class="hud ayuda-3d"><i data-lucide="move-3d" class="icono"></i>Arrastra para girar · rueda para acercar · toca un planeta, una luna o el sol</div>
+  <div class="hud ayuda-3d"><i data-lucide="move-3d" class="icono"></i>Arrastra para girar · rueda para acercar · toca una neurona, una entrada del chip o el núcleo</div>
 
   <div id="conectar" role="dialog" aria-labelledby="conectar-t">
     <h2 id="conectar-t">Conecta Neuro Trade con tu bot</h2>
@@ -317,7 +317,7 @@ footer { text-align: center; color: var(--dim); font-size: 12.5px; padding: 30px
 
     <section class="camara g8" id="c-ops">
       <h2><i data-lucide="activity" class="icono"></i>Operaciones en demo</h2>
-      <p class="intro">Resultados de cada bot. Las operaciones de práctica del curso son de $1.</p>
+      <p class="intro">Resultados de cada bot. Las operaciones de práctica del curso usan el monto normal.</p>
       <div id="operaciones"></div>
     </section>
 
@@ -378,103 +378,171 @@ let API = LOCAL ? "" : "http://127.0.0.1:8765";
 try { if (!LOCAL) API = localStorage.getItem("neuro_api") || API; } catch (e) {}
 
 /* =====================================================================
-   Escena 3D: un sistema solar (lunas → planetas → sol)
+   Escena 3D: un cerebro de cristal (entradas → neuronas → núcleo)
    ===================================================================== */
 const lienzo = $("lienzo");
 const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, alpha: false, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setClearColor(0x020611, 1);
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x020611, 0.026);
+scene.fog = new THREE.FogExp2(0x020611, 0.022);
 const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 200);
-camera.position.set(0, 13, 27);
 const controls = new OrbitControls(camera, lienzo);
 controls.enableDamping = true; controls.dampingFactor = 0.06;
 controls.autoRotate = !QUIETO; controls.autoRotateSpeed = 0.55;
-controls.minDistance = 12; controls.maxDistance = 55; controls.enablePan = false;
-controls.target.set(0, 0, 0);
+controls.minDistance = 10; controls.maxDistance = 48; controls.enablePan = false;
+controls.target.set(0, -1.6, 0);
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 1.05, 0.65, 0.12);
 composer.addPass(bloom);
 
-// Campo de partículas: el "espacio" alrededor del cerebro
+// Polvo de luz alrededor del cerebro
 {
-  const n = 1800, g = new THREE.BufferGeometry(), p = new Float32Array(n * 3);
+  const n = 1400, g = new THREE.BufferGeometry(), p = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
-    const r = 30 + Math.random() * 60, t = Math.random() * Math.PI * 2, f = Math.acos(2 * Math.random() - 1);
+    const r = 26 + Math.random() * 60, t = Math.random() * Math.PI * 2, f = Math.acos(2 * Math.random() - 1);
     p.set([r * Math.sin(f) * Math.cos(t), r * Math.cos(f) * 0.6, r * Math.sin(f) * Math.sin(t)], i * 3);
   }
   g.setAttribute("position", new THREE.BufferAttribute(p, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x6f8fd0, size: 0.09, transparent: true, opacity: 0.7, depthWrite: false })));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x6f8fd0, size: 0.08, transparent: true, opacity: 0.55, depthWrite: false })));
 }
 
-/* Sistema solar: el sol es el núcleo de decisión, las 24 neuronas son
-   planetas en órbitas y las 12 entradas son lunas en la órbita exterior. */
+/* El cerebro es una malla de cristal: puntos sobre la superficie unidos con
+   sus vecinos (dos hemisferios con circunvoluciones, cerebelo y tronco).
+   Las 24 neuronas viven en la corteza, las 12 entradas en el chip de abajo
+   (los datos suben por el tronco) y el núcleo de decisión en el centro. */
 const N_ENT = 12, N_NEU = 24;
-const grupo = new THREE.Group(); grupo.rotation.x = 0.08; scene.add(grupo);
+const grupo = new THREE.Group(); scene.add(grupo);
 const matHolo = op => new THREE.MeshBasicMaterial({ color: C.acento, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
 
-// Sol (núcleo) con el reactor alrededor
-const sol = new THREE.Mesh(new THREE.SphereGeometry(1.25, 48, 24), new THREE.MeshBasicMaterial({ color: C.acento }));
-sol.userData = { tipo: "nucleo" }; grupo.add(sol);
-const corona = new THREE.Mesh(new THREE.IcosahedronGeometry(1.9, 2), new THREE.MeshBasicMaterial({ color: C.acento, wireframe: true, transparent: true, opacity: 0.45 }));
-grupo.add(corona);
-const reactor = new THREE.Group(); grupo.add(reactor);
-const arcosReactor = [[2.4, 0.05, 1.4, 0.9], [2.9, 0.03, 4.2, -0.6], [3.35, 0.02, 2.4, 0.35]].map(([r, g, arc, vel]) => {
-  const m = new THREE.Mesh(new THREE.TorusGeometry(r, g, 6, 90, arc), matHolo(0.85)); m.userData.vel = vel; reactor.add(m); return m;
+// Dirección i de n repartidas parejo sobre una esfera (con un poco de azar: triángulos irregulares)
+function fibo(n, i, azar = 0) {
+  const y = 1 - (i + 0.5) / n * 2, r = Math.sqrt(1 - y * y), a = i * 2.399963;
+  return new THREE.Vector3(Math.cos(a) * r + (Math.random() - 0.5) * azar, y + (Math.random() - 0.5) * azar,
+                           Math.sin(a) * r + (Math.random() - 0.5) * azar).normalize();
+}
+// Corteza: punto de la superficie en la dirección d (x = ancho, y = alto, z = frente)
+function corteza(d, hondo = 1) {
+  const { x, y, z } = d;
+  let r = 1;
+  r *= 1 - 0.2 * Math.exp(-(x * x) / 0.004) * Math.max(0, y + 0.25);                       // cisura entre hemisferios
+  r *= 1 + 0.055 * Math.sin(9 * x + 3 * Math.sin(6 * z)) * Math.sin(8 * y + 2 * Math.sin(7 * x))
+         + 0.035 * Math.sin(13 * z + 5 * y);                                                 // circunvoluciones
+  r *= 1 + 0.14 * Math.exp(-((y + 0.3) ** 2) / 0.05 - ((z - 0.15) ** 2) / 0.12) * Math.abs(x); // lóbulos temporales
+  if (y < -0.35) r *= 1 - (-0.35 - y) * 0.5;                                                 // base aplanada
+  r *= hondo;
+  return new THREE.Vector3(x * 4.7 * r, y * 4.2 * r + 0.4, z * 6.1 * r);
+}
+const CEREBELO = new THREE.Vector3(0, -2.1, -4.1), TRONCO = [new THREE.Vector3(0, -1.2, -1.6), new THREE.Vector3(0, -6.6, -2.4)];
+const partes = [[], [], []];
+for (let i = 0; i < 1500; i++) partes[0].push(corteza(fibo(1500, i, 0.02)));
+for (let i = 0; i < 300; i++) {
+  const d = fibo(300, i, 0.04), r = 1 + 0.06 * Math.sin(28 * d.y);                          // pliegues del cerebelo
+  if (d.z > 0.45 && d.y > -0.2) continue;                                                  // la parte tapada por la corteza
+  partes[1].push(new THREE.Vector3(d.x * 3.3 * r, d.y * 1.45 * r, d.z * 1.9 * r).add(CEREBELO));
+}
+for (let i = 0; i < 140; i++) {
+  const f = i / 140, a = i * 2.399963 * 3, ancho = 0.75 - f * 0.3;
+  const c = TRONCO[0].clone().lerp(TRONCO[1], f);
+  partes[2].push(new THREE.Vector3(c.x + Math.cos(a) * ancho, c.y, c.z + Math.sin(a) * ancho * 0.85));
+}
+// Une cada punto con sus k vecinos más cercanos de la misma parte
+function tejer(pts, k, seg) {
+  const hechos = new Set();
+  for (let i = 0; i < pts.length; i++) {
+    const mejor = [];
+    for (let j = 0; j < pts.length; j++) {
+      if (j === i) continue;
+      const dd = pts[i].distanceToSquared(pts[j]);
+      if (mejor.length < k || dd < mejor[mejor.length - 1][0]) {
+        mejor.push([dd, j]); mejor.sort((a, b) => a[0] - b[0]); if (mejor.length > k) mejor.pop();
+      }
+    }
+    for (const [, j] of mejor) {
+      const clave = i < j ? i * 4096 + j : j * 4096 + i;
+      if (hechos.has(clave)) continue;
+      hechos.add(clave); seg.push(pts[i].x, pts[i].y, pts[i].z, pts[j].x, pts[j].y, pts[j].z);
+    }
+  }
+}
+const cerebro = new THREE.Group(); grupo.add(cerebro);
+const segMalla = [];
+partes.forEach((pts, n) => tejer(pts, n === 2 ? 4 : 3, segMalla));
+const malla = new THREE.LineSegments(
+  new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(segMalla, 3)),
+  new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false }));
+cerebro.add(malla);
+const nodos = new THREE.Points(
+  new THREE.BufferGeometry().setFromPoints(partes.flat()),
+  new THREE.PointsMaterial({ color: 0xcfeeff, size: 0.075, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+cerebro.add(nodos);
+
+// Núcleo de decisión (en el centro del cerebro) con su reactor
+const sol = new THREE.Mesh(new THREE.SphereGeometry(0.45, 40, 20), new THREE.MeshBasicMaterial({ color: C.acento }));
+sol.position.set(0, -0.2, 0.2); sol.userData = { tipo: "nucleo" }; grupo.add(sol);
+const corona = new THREE.Mesh(new THREE.IcosahedronGeometry(0.8, 1), new THREE.MeshBasicMaterial({ color: C.acento, wireframe: true, transparent: true, opacity: 0.45 }));
+corona.position.copy(sol.position); grupo.add(corona);
+const reactor = new THREE.Group(); reactor.position.copy(sol.position); grupo.add(reactor);
+const arcosReactor = [[1.1, 0.025, 1.4, 0.9], [1.3, 0.018, 4.2, -0.6]].map(([r, g, arc, vel]) => {
+  const m = new THREE.Mesh(new THREE.TorusGeometry(r, g, 6, 90, arc), matHolo(0.8)); m.userData.vel = vel; reactor.add(m); return m;
 });
 
-// Órbitas: 6 anillos de planetas + la órbita exterior de las lunas
-const RADIOS = [4.6, 6.2, 7.8, 9.4, 11.0, 12.6], R_LUNAS = 15.2;
-const orbitas = new THREE.Group(); grupo.add(orbitas);
-function orbita(r, op) {
-  const pts = []; for (let i = 0; i <= 256; i++) { const a = i / 256 * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r)); }
-  orbitas.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: op, blending: THREE.AdditiveBlending })));
-}
-RADIOS.forEach(r => orbita(r, 0.16)); orbita(R_LUNAS, 0.28);
-// Dial con marcas sobre la órbita exterior (toque JARVIS)
+// Chip de abajo: de ahí suben los datos al cerebro por el tronco
+const CHIP = new THREE.Vector3(0, -8.6, -2.4);
 {
-  const pts = [];
-  for (let i = 0; i < 180; i++) { const a = i / 180 * Math.PI * 2, l = i % 15 === 0 ? 0.9 : 0.35;
-    pts.push(Math.cos(a) * (R_LUNAS + 1), 0, Math.sin(a) * (R_LUNAS + 1), Math.cos(a) * (R_LUNAS + 1 + l), 0, Math.sin(a) * (R_LUNAS + 1 + l)); }
-  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-  var dial = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending }));
-  grupo.add(dial);
+  const chip = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(3.2, 0.35, 3.2)),
+    new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending }));
+  chip.position.copy(CHIP); grupo.add(chip);
+  const pistas = [];                                                                         // pistas del circuito
+  for (let i = 0; i < 48; i++) {
+    const a = i / 48 * Math.PI * 2, r0 = 2.3, r1 = 4.2 + (i % 3) * 1.1, codo = r0 + (r1 - r0) * 0.5;
+    const p = (r, da = 0) => [CHIP.x + Math.cos(a + da) * r, CHIP.y - 0.15, CHIP.z + Math.sin(a + da) * r];
+    pistas.push(...p(r0), ...p(codo), ...p(codo), ...p(r1, 0.06));
+  }
+  grupo.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(pistas, 3)),
+    new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending })));
 }
-// Cinturón de asteroides decorativo entre los planetas y las lunas
-{
-  const n = 900, p = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, r = 13.4 + Math.random() * 0.9;
-    p.set([Math.cos(a) * r, (Math.random() - 0.5) * 0.35, Math.sin(a) * r], i * 3); }
-  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3));
-  var cinturon = new THREE.Points(g, new THREE.PointsMaterial({ color: 0x7fc8ff, size: 0.06, transparent: true, opacity: 0.6, depthWrite: false }));
-  grupo.add(cinturon);
+// Haces de luz verticales entre el chip y el tronco, con datos que suben
+const N_FLUJO = 220, Y0 = CHIP.y + 0.2, Y1 = TRONCO[1].y + 0.4;
+const haces = [], flujoPos = new Float32Array(N_FLUJO * 3), flujoVel = [];
+for (let i = 0; i < 26; i++) {
+  const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 0.75;
+  haces.push([CHIP.x + Math.cos(a) * r, CHIP.z + Math.sin(a) * r]);
 }
-const piso = new THREE.PolarGridHelper(26, 24, 10, 128, C.acento, C.acento);
-piso.material.transparent = true; piso.material.opacity = 0.06; piso.position.y = -6; scene.add(piso);
+const segHaces = haces.flatMap(([x, z]) => [x, Y0, z, x, Y1, z]);
+grupo.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(segHaces, 3)),
+  new THREE.LineBasicMaterial({ color: C.acento, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false })));
+for (let i = 0; i < N_FLUJO; i++) {
+  const [x, z] = haces[i % haces.length];
+  flujoPos.set([x, Y0 + Math.random() * (Y1 - Y0), z], i * 3); flujoVel.push(0.8 + Math.random() * 1.6);
+}
+const flujoGeo = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(flujoPos, 3));
+const flujo = new THREE.Points(flujoGeo, new THREE.PointsMaterial({ color: 0xbfe8ff, size: 0.09, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+grupo.add(flujo);
+const piso = new THREE.PolarGridHelper(22, 24, 8, 128, C.acento, C.acento);
+piso.material.transparent = true; piso.material.opacity = 0.05; piso.position.y = CHIP.y - 0.3; scene.add(piso);
 
+// Neuronas (en la corteza, un poco hacia adentro) y entradas (alrededor del chip)
 const geoNodo = new THREE.SphereGeometry(1, 28, 18);
 const entradas = [], neuronas = [];
-for (let j = 0; j < N_NEU; j++) { // 4 planetas por órbita, repartidos; los de afuera giran más lento (Kepler)
-  const r = RADIOS[j % RADIOS.length], m = new THREE.Mesh(geoNodo, new THREE.MeshBasicMaterial({ color: C.tenue }));
-  m.userData = { tipo: "neurona", j, base: 0.34, r, ang: j * 2.399963, vel: 0.9 / Math.pow(r, 1.5) * 4, inc: (Math.random() - 0.5) * 0.12 };
-  m.scale.setScalar(0.34); grupo.add(m); neuronas.push(m);
-  const halo = new THREE.Mesh(new THREE.RingGeometry(1.5, 1.62, 40), matHolo(0.35)); m.add(halo); m.userData.halo = halo;
+for (let j = 0; j < N_NEU; j++) {
+  const m = new THREE.Mesh(geoNodo, new THREE.MeshBasicMaterial({ color: C.tenue }));
+  const d = fibo(N_NEU, j); if (Math.abs(d.x) < 0.12) d.x = Math.sign(d.x || 1) * 0.12;  // fuera de la cisura
+  m.position.copy(corteza(d.normalize(), 0.86));
+  m.userData = { tipo: "neurona", j, base: 0.3 };
+  m.scale.setScalar(0.3); grupo.add(m); neuronas.push(m);
+  const halo = new THREE.Mesh(new THREE.RingGeometry(1.35, 1.45, 40), matHolo(0.18)); m.add(halo); m.userData.halo = halo;
 }
 for (let i = 0; i < N_ENT; i++) {
-  const m = new THREE.Mesh(geoNodo, new THREE.MeshBasicMaterial({ color: C.tenue }));
-  m.userData = { tipo: "entrada", i, r: R_LUNAS, ang: i / N_ENT * Math.PI * 2, vel: 0.05, inc: 0 };
-  m.scale.setScalar(0.24); grupo.add(m); entradas.push(m);
+  const m = new THREE.Mesh(geoNodo, new THREE.MeshBasicMaterial({ color: C.tenue })), a = i / N_ENT * Math.PI * 2;
+  m.position.set(CHIP.x + Math.cos(a) * 3.0, CHIP.y + 0.1, CHIP.z + Math.sin(a) * 3.0);
+  m.userData = { tipo: "entrada", i };
+  m.scale.setScalar(0.22); grupo.add(m); entradas.push(m);
 }
-function mover(m, dt) {
-  const u = m.userData; u.ang += dt * u.vel;
-  m.position.set(Math.cos(u.ang) * u.r, Math.sin(u.ang * 2) * u.inc * u.r, Math.sin(u.ang) * u.r);
-}
-[...neuronas, ...entradas].forEach(m => mover(m, 0));
 
-// Conexiones: se recalculan cada cuadro porque los planetas se mueven
+// Conexiones entre entradas, neuronas y el núcleo según los pesos de la red
 const MAXL = N_ENT * N_NEU + N_NEU;
 const lgeo = new THREE.BufferGeometry();
 const lpos = new Float32Array(MAXL * 6), lcol = new Float32Array(MAXL * 6);
@@ -486,23 +554,21 @@ let enlaces = [], rutas = [];
 const tmp = new THREE.Color();
 function definirConexiones(red) {
   enlaces = []; rutas = [];
-  // Si la red tiene más neuronas o entradas que planetas o lunas, se omiten las que no caben
+  // Si la red tiene más neuronas o entradas que las que se dibujan, se omiten las que no caben
   const pon = (a, b, color, f) => a && b && enlaces.length < MAXL && enlaces.push({ a, b, col: tmp.set(color).clone().multiplyScalar(f) });
   if (red) {
     const maxW = Math.max(...red.conexiones.flat().map(Math.abs), 1e-6);
     red.conexiones.forEach((fila, i) => fila.forEach((w, j) => {
       const f = Math.abs(w) / maxW; if (f < 0.42) return;
-      pon(entradas[i], neuronas[j], w > 0 ? C.sube : C.baja, 0.06 + f * 0.4);
+      pon(entradas[i], neuronas[j], w > 0 ? C.sube : C.baja, 0.05 + f * 0.3);
       if (f > 0.6 && entradas[i] && neuronas[j]) rutas.push([i, j]);
     }));
     const maxO = Math.max(...red.activacion.map((a, j) => Math.abs(a * red.peso_salida[j])), 1e-6);
     red.activacion.forEach((a, j) => { const v = a * red.peso_salida[j], f = Math.abs(v) / maxO;
       pon(neuronas[j], sol, v > 0 ? C.sube : C.baja, 0.1 + f * 0.8); });
   } else {
-    neuronas.forEach((n, j) => { pon(n, sol, C.acento, 0.12); pon(entradas[j % N_ENT], n, C.acento, 0.05); rutas.push([j % N_ENT, j]); });
+    neuronas.forEach((n, j) => { pon(n, sol, C.acento, 0.12); rutas.push([j % N_ENT, j]); });
   }
-}
-function actualizarLineas() {
   enlaces.forEach((e, k) => {
     const a = e.a.position, b = e.b.position;
     lpos.set([a.x, a.y, a.z, b.x, b.y, b.z], k * 6);
@@ -513,8 +579,8 @@ function actualizarLineas() {
 }
 definirConexiones(null);
 
-// Pulsos: la señal viaja luna → planeta → sol siguiendo sus posiciones
-const pulsos = [], geoPulso = new THREE.SphereGeometry(0.13, 10, 8);
+// Pulsos: la señal sube del chip a una neurona y de ahí al núcleo
+const pulsos = [], geoPulso = new THREE.SphereGeometry(0.11, 10, 8);
 function disparar(color) {
   rutas.slice().sort(() => Math.random() - 0.5).slice(0, 40).forEach(([i, j], n) => {
     const m = new THREE.Mesh(geoPulso, new THREE.MeshBasicMaterial({ color, transparent: true }));
@@ -527,7 +593,7 @@ function resize() {
   const w = lienzo.clientWidth, h = lienzo.clientHeight;
   renderer.setSize(w, h, false); composer.setSize(w, h); bloom.resolution.set(w, h);
   camera.aspect = w / h;
-  camera.position.set(0, w < 760 ? 22 : 13, w < 760 ? 34 : 27);
+  camera.position.set(w < 760 ? -34 : -24, w < 760 ? 4 : 2.5, w < 760 ? 10 : 7);
   grupo.position.x = w > 1020 ? -2.5 : 0;
   camera.updateProjectionMatrix();
 }
@@ -541,13 +607,18 @@ function animar() {
   if (!enPantalla || document.hidden) return;
   const dt = Math.min(reloj.getDelta(), 0.05), t = reloj.elapsedTime, vel = QUIETO ? 0 : 1;
   controls.update();
-  neuronas.forEach((m, j) => { mover(m, dt * vel); m.scale.setScalar(m.userData.base * (1 + Math.sin(t * 2 + j) * 0.05)); m.userData.halo.lookAt(camera.position); });
-  entradas.forEach(m => mover(m, dt * vel));
-  actualizarLineas();
+  neuronas.forEach((m, j) => { m.scale.setScalar(m.userData.base * (1 + Math.sin(t * 2 + j) * 0.08 * vel)); m.userData.halo.lookAt(camera.position); });
+  cerebro.scale.setScalar(1 + Math.sin(t * 0.9) * 0.006 * vel);
+  malla.material.opacity = 0.3 + destello * 0.25;
+  for (let i = 0; i < N_FLUJO; i++) {
+    let y = flujoPos[i * 3 + 1] + dt * flujoVel[i] * vel;
+    if (y > Y1) y = Y0;
+    flujoPos[i * 3 + 1] = y;
+  }
+  flujoGeo.attributes.position.needsUpdate = true;
   corona.rotation.y += dt * 0.3; corona.rotation.x += dt * 0.1;
   reactor.lookAt(camera.position);
   arcosReactor.forEach(m => m.rotation.z += dt * m.userData.vel * (1 + destello * 3) * vel);
-  dial.rotation.y -= dt * 0.03 * vel; cinturon.rotation.y += dt * 0.02 * vel;
   for (let k = pulsos.length - 1; k >= 0; k--) {
     const m = pulsos[k], u = m.userData; u.t += dt * (QUIETO ? 4 : 0.85);
     if (u.t < 0) continue;
@@ -563,7 +634,7 @@ function animar() {
 }
 animar();
 
-// Interacción: pasar el cursor y tocar planetas, lunas y el sol
+// Interacción: pasar el cursor y tocar neuronas, entradas y el núcleo
 const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), etiqueta = $("etiqueta3d");
 let redActual = null, sobre = null;
 function nodoBajo(ev) {
@@ -575,10 +646,10 @@ function nodoBajo(ev) {
 }
 function textoNodo(o) {
   const d = o.userData;
-  if (!redActual) return d.tipo === "nucleo" ? ["El sol: núcleo de decisión", "Aquí nace la probabilidad final. Ahora está en reposo."] : ["En reposo", "Conecta el bot para verlo trabajar."];
-  if (d.tipo === "entrada") { const e = redActual.entradas[d.i]; return e ? [`Luna · ${nombreEntrada(e.nombre)}`, `Empuja ${e.aporte >= 0 ? "hacia sube" : "hacia baja"} (${e.aporte}). Valor ${e.valor}.`] : ["Luna", "Entrada sin peso en esta vela."]; }
-  if (d.tipo === "neurona") { const a = redActual.activacion[d.j], w = redActual.peso_salida[d.j]; return [`Planeta ${d.j + 1} (neurona)`, `Activación ${a} · su voto vale ${w} · aporta ${(a * w).toFixed(3)} ${a * w >= 0 ? "a sube" : "a baja"}.`]; }
-  const x = vivo(); return ["El sol: núcleo de decisión", x ? `${((x.prob ?? .5) * 100).toFixed(1)}% de que suba en 3 minutos.` : ""];
+  if (!redActual) return d.tipo === "nucleo" ? ["Núcleo de decisión", "Aquí nace la probabilidad final. Ahora está en reposo."] : ["En reposo", "Conecta el bot para verlo trabajar."];
+  if (d.tipo === "entrada") { const e = redActual.entradas[d.i]; return e ? [`Entrada · ${nombreEntrada(e.nombre)}`, `Empuja ${e.aporte >= 0 ? "hacia sube" : "hacia baja"} (${e.aporte}). Valor ${e.valor}.`] : ["Entrada", "Sin peso en esta vela."]; }
+  if (d.tipo === "neurona") { const a = redActual.activacion[d.j], w = redActual.peso_salida[d.j]; return [`Neurona ${d.j + 1}`, `Activación ${a} · su voto vale ${w} · aporta ${(a * w).toFixed(3)} ${a * w >= 0 ? "a sube" : "a baja"}.`]; }
+  const x = vivo(); return ["Núcleo de decisión", x ? `${((x.prob ?? .5) * 100).toFixed(1)}% de que suba en 3 minutos.` : ""];
 }
 lienzo.addEventListener("pointermove", ev => {
   const o = nodoBajo(ev);
@@ -613,11 +684,13 @@ function pintarCerebro(x) {
     const p = x.prob ?? 0.5, tipo = tipoConclusion(x.conclusion);
     const col = tipo === "practica" ? C.ambar : p >= 0.5 ? C.sube : C.baja;
     sol.material.color.set(col); corona.material.color.set(col); arcosReactor.forEach(m => m.material.color.set(col));
+    malla.material.color.set(C.acento).lerp(tmp.set(col), 0.4);
     definirConexiones(red);
     disparar(col);
   } else if (!red && redActual) {
     redActual = null; definirConexiones(null);
     [...entradas, ...neuronas].forEach(m => m.material.color.set(C.tenue));
+    malla.material.color.set(C.acento);
   }
 }
 // En reposo, un destello de muestra cada pocos segundos
@@ -703,7 +776,7 @@ function pintarVeredicto() {
   $("arco").setAttribute("stroke-dasharray", `${Math.min(Math.abs(p - 50) / 25, 1) * 465} 465`);
   $("arco").setAttribute("stroke", tipo === "practica" ? "var(--ambar)" : sube ? "var(--sube)" : "var(--baja)");
   $("direccion").innerHTML = `<i data-lucide="${sube ? "trending-up" : "trending-down"}" class="icono ${sube ? "pos" : "neg"}"></i>${sube ? "Cree que sube" : "Cree que baja"}<span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:13px">· red sola ${((x.p_red ?? 0.5) * 100).toFixed(1)}%</span>`;
-  const titulo = { opero: "Opera", practica: "Práctica ($1)", descarto: "Descarta" }[tipo];
+  const titulo = { opero: "Opera", practica: "Práctica", descarto: "Descarta" }[tipo];
   $("conclusion").className = "conclusion " + tipo;
   $("conclusion").innerHTML = `<b>${titulo}</b>${esc(x.conclusion.replace(/^(OPERO|PRÁCTICA|DESCARTO)[^:]*:\s*/, ""))}`;
   $("checks").innerHTML = (x.checks || []).map(c => `<li class="${c.ok ? "" : "foco"}" title="${esc(c.detalle)}">
