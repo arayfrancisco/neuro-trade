@@ -792,8 +792,11 @@ function pintarKpis(cer) {
   const k = [[`${cer.redes}×${cer.neuronas}`, "redes × neuronas"], [`v${cer.version}`, "versión del cerebro"], [cer.entradas, "cosas que mira por vela"],
     [cer.repaso.toLocaleString("es"), "experiencias en memoria"], [cer.experiencia.siestas, "siestas para consolidar"],
     [`${cer.experiencia.desde_siesta}/600`, "hasta la próxima siesta"], [`×${cer.velocidad}`, "velocidad de aprendizaje"],
-    [cer.lecciones.length, "lecciones activas"], [cer.patrones.filter(p => p.fase === "prueba" || p.fase === "confirmado").length, "patrones descubiertos"]];
-  $("kpis").innerHTML = k.map(([v, t]) => `<div class="kpi"><b>${esc(v)}</b><span>${esc(t)}</span></div>`).join("");
+    [cer.lecciones.length, "lecciones activas"], [cer.patrones.filter(p => p.fase === "prueba" || p.fase === "confirmado").length, "patrones descubiertos"],
+    [`+${cer.neuronas_nacidas || 0}`, "neuronas nacidas al aprender"]];
+  const nac = (cer.neurogenesis || []).slice(0, 4);
+  $("kpis").innerHTML = k.map(([v, t]) => `<div class="kpi"><b>${esc(v)}</b><span>${esc(t)}</span></div>`).join("") +
+    (nac.length ? `<div class="kpi" style="grid-column:1/-1"><span>${nac.map(n => `🌱 ${esc(n.fecha.slice(5, 16).replace("T", " "))} · ${esc(n.motivo)} → ${n.total}`).join("<br>")}</span></div>` : "");
 }
 
 function pintarOperaciones() {
