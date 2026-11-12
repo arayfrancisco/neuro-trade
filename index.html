@@ -486,13 +486,14 @@ let enlaces = [], rutas = [];
 const tmp = new THREE.Color();
 function definirConexiones(red) {
   enlaces = []; rutas = [];
-  const pon = (a, b, color, f) => enlaces.push({ a, b, col: tmp.set(color).clone().multiplyScalar(f) });
+  // Si la red tiene más neuronas o entradas que planetas o lunas, se omiten las que no caben
+  const pon = (a, b, color, f) => a && b && enlaces.length < MAXL && enlaces.push({ a, b, col: tmp.set(color).clone().multiplyScalar(f) });
   if (red) {
     const maxW = Math.max(...red.conexiones.flat().map(Math.abs), 1e-6);
     red.conexiones.forEach((fila, i) => fila.forEach((w, j) => {
       const f = Math.abs(w) / maxW; if (f < 0.42) return;
       pon(entradas[i], neuronas[j], w > 0 ? C.sube : C.baja, 0.06 + f * 0.4);
-      if (f > 0.6) rutas.push([i, j]);
+      if (f > 0.6 && entradas[i] && neuronas[j]) rutas.push([i, j]);
     }));
     const maxO = Math.max(...red.activacion.map((a, j) => Math.abs(a * red.peso_salida[j])), 1e-6);
     red.activacion.forEach((a, j) => { const v = a * red.peso_salida[j], f = Math.abs(v) / maxO;
@@ -604,7 +605,7 @@ function pintarCerebro(x) {
     entradas.forEach((m, i) => { const e = red.entradas[i];
       m.material.color.set(e ? (e.aporte >= 0 ? C.sube : C.baja) : C.tenue).multiplyScalar(e ? 0.45 + Math.min(Math.abs(e.aporte) * 6, 0.55) : 1); });
     neuronas.forEach((m, j) => {
-      const a = red.activacion[j], v = a * red.peso_salida[j], col = v >= 0 ? C.sube : C.baja;
+      const a = red.activacion[j] ?? 0, v = a * (red.peso_salida[j] ?? 0), col = v >= 0 ? C.sube : C.baja;
       m.material.color.set(col).multiplyScalar(0.3 + Math.abs(a) * 0.7);
       m.userData.halo.material.color.set(col);
       m.userData.base = 0.24 + Math.abs(a) * 0.36;
