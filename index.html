@@ -741,8 +741,24 @@ function pintarCurso(cer) {
       <p class="muted" style="margin:0 0 8px;font-size:13.5px">Práctica para el examen: <span class="num">${c.practica}/${c.practica_min}</span>${c.expertos.length ? ` · practica ${esc(c.expertos.join(", "))}` : ""}</p>
       <div class="barra"><i style="left:0;width:${pct * 100}%;background:var(--acento)"></i></div>
       <ul class="apuntes">${c.apuntes.map(a => `<li>${esc(a)}</li>`).join("")}</ul>`}
-    <div id="detalle-etapa"></div>`;
+    <div id="detalle-etapa"></div>${pintarNivel2(c.nivel2)}`;
   window._curso = c;
+}
+function pintarNivel2(n) {
+  if (!n) return "";
+  if (!n.empezado) return `<p class="muted" style="margin:18px 0 0;font-size:13.5px"><b>Nivel II</b> (análisis avanzado y price action): empieza cuando se gradúe de este curso. ${n.etapas.length} etapas con retos de ${n.etapas[0].reto} a ${n.etapas[n.etapas.length - 1].reto} análisis correctos seguidos.</p>`;
+  if (n.graduado) return `<p style="margin:18px 0 0"><b>Graduado del nivel II.</b></p>${(n.graduacion && n.graduacion.competencias || []).map(x => `<p class="muted" style="margin:2px 0;font-size:13px">${esc(x)}</p>`).join("")}`;
+  const pct = n.racha / n.reto, acc = n.intentos ? Math.round(n.aciertos / n.intentos * 100) : null;
+  return `
+    <p style="margin:20px 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase" class="muted">Nivel II · análisis avanzado</p>
+    <div class="etapas">${n.etapas.map(e => { const hecha = n.aprobadas.includes(e.n), actual = e.n === n.etapa;
+      return `<button class="etapa ${hecha ? "hecha" : ""} ${actual ? "actual" : ""}" style="--p:${actual ? pct : 0}" aria-label="Nivel II etapa ${e.n}: ${esc(e.titulo)}">${hecha ? "✓" : e.n}</button>`; }).join("")}</div>
+    <p style="margin:0 0 4px;font-size:18px;font-weight:600">Etapa ${n.etapa}: ${esc(n.titulo)}</p>
+    <p class="muted" style="margin:0 0 8px;font-size:13.5px">Reto: <span class="num">${n.racha}/${n.reto}</span> análisis correctos seguidos · mejor racha <span class="num">${n.mejor_racha}</span> · ${acc === null ? "sin análisis resueltos" : `acierto total <span class="num">${acc}%</span> en ${n.intentos}`} · sin conclusión ${n.sin_conclusion}</p>
+    <div class="barra"><i style="left:0;width:${pct * 100}%;background:var(--acento)"></i></div>
+    ${n.ejercicio ? `<p class="muted" style="margin:10px 0 0;font-size:13px">Ejercicio resuelto: ${esc(n.ejercicio)}</p>` : `<p class="muted" style="margin:10px 0 0;font-size:13px">Todavía resolviendo el ejercicio de la etapa.</p>`}
+    ${n.abiertos.map(a => `<p style="margin:8px 0 0;font-size:13.5px">🔎 ${esc(a.activo)}: ${esc(a.conclusion)}</p>`).join("")}
+    <ul class="apuntes">${n.historial.map(h => `<li>${h.ok ? "✅" : "✘"} ${esc(h.activo)} · ${esc(h.conclusion)} — ${esc(h.texto)}</li>`).join("")}</ul>`;
 }
 $("curso").addEventListener("click", ev => {
   const b = ev.target.closest(".etapa"); if (!b) return;
