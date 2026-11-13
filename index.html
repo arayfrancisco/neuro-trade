@@ -186,6 +186,21 @@ tbody tr { cursor: pointer; transition: background .2s var(--ease); } tbody tr:h
 .pos { color: var(--sube); } .neg { color: var(--baja); } .amb { color: var(--ambar); } .muted { color: var(--muted); }
 .vacio { color: var(--muted); padding: 10px 0; }
 
+.dias-bots { margin-bottom: 18px; flex-wrap: wrap; border-radius: 18px; }
+.dias-graf { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin: 20px 0 22px; }
+.dia-col { border: 0; background: transparent; padding: 6px 0 4px; cursor: pointer; border-radius: 10px; color: var(--dim); font: 11px var(--num); transition: background .3s var(--ease), color .3s var(--ease); }
+.dia-col:hover { background: rgba(122, 190, 255, 0.05); }
+.dia-col[aria-pressed="true"] { background: rgba(63, 210, 255, 0.09); color: var(--text); }
+.dia-col .zona { position: relative; height: 140px; margin-bottom: 6px; }
+.dia-col .zona::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--line2); }
+.dia-col i { position: absolute; left: 24%; right: 24%; height: var(--h); min-height: 2px; transition: height .8s var(--ease); }
+.dia-col i.pos { bottom: 50%; border-radius: 3px 3px 0 0; background: var(--sube); box-shadow: 0 0 12px rgba(63, 210, 255, 0.35); }
+.dia-col i.neg { top: 50%; border-radius: 0 0 3px 3px; background: var(--baja); box-shadow: 0 0 12px rgba(255, 122, 51, 0.3); }
+.cuenta { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+.cuenta b { font-family: var(--num); font-weight: 500; }
+.lucro-final b { font-size: 32px; }
+tfoot td { border-bottom: 0; color: var(--muted); font-weight: 600; }
+
 .flujo { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 440px; overflow: auto; }
 .flujo li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; padding: 9px 12px; border-radius: 10px; background: rgba(8, 16, 30, 0.65); font-size: 13.5px; }
 .flujo .h { color: var(--dim); font-family: var(--num); font-size: 12px; }
@@ -208,6 +223,7 @@ footer { text-align: center; color: var(--dim); font-size: 12.5px; padding: 30px
   .op { grid-template-columns: 90px 1fr 44px; }
   .fila { grid-template-columns: 70px 1fr 90px; }
   .etapa { height: 42px; font-size: 13px; }
+  .dia-col:nth-child(-n+7):not(:nth-last-child(-n+7)) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .escaneo::after { display: none; }
@@ -327,6 +343,12 @@ footer { text-align: center; color: var(--dim); font-size: 12.5px; padding: 30px
       <ul class="flujo" id="entrenador"></ul>
     </section>
 
+    <section class="camara g12" id="c-dias">
+      <h2><i data-lucide="calendar-days" class="icono"></i>Ganancias y pérdidas por día</h2>
+      <p class="intro">Lo que dejaron las operaciones cerradas de cada día: lo ganado, lo perdido y el lucro final (ganancia − pérdida). Toca un día para ver su detalle.</p>
+      <div id="dias"><p class="vacio">Todavía no hay operaciones cerradas.</p></div>
+    </section>
+
     <section class="camara g7" id="c-memoria">
       <h2><i data-lucide="library" class="icono"></i>Memoria de patrones</h2>
       <p class="intro">Lo que recuerda de cada patrón de vela: cuántas veces lo vio y cuántas veces subió el precio después. Toca uno para ver qué significa.</p>
@@ -371,7 +393,7 @@ const QUIETO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const PAGO = 0.83, EQUILIBRIO = 100 / (1 + PAGO);
 const C = { sube: 0x3fd2ff, baja: 0xff7a33, ambar: 0xffc04d, acento: 0x3fd2ff, tenue: 0x1d3a5c };
 
-let datos = null, mercado = "otc", activoSel = null, orden = { campo: "visto", asc: false };
+let datos = null, mercado = "otc", activoSel = null, orden = { campo: "visto", asc: false }, botDia = "todos", diaSel = null;
 const vistos = new Set();
 const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
 let API = LOCAL ? "" : "http://127.0.0.1:8765";
@@ -747,7 +769,7 @@ function pintar() {
   if (!datos) return;
   const cer = datos.cerebros[mercado];
   pintarServicios(); pintarVeredicto(); pintarOpiniones(cer); pintarCurso(cer); pintarMeta(cer); pintarExpertos(cer);
-  pintarKpis(cer); pintarOperaciones(); pintarPatrones(); pintarDiario(cer); pintarFlujo(); pintarEntrenador();
+  pintarKpis(cer); pintarOperaciones(); pintarDias(); pintarPatrones(); pintarDiario(cer); pintarFlujo(); pintarEntrenador();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -884,6 +906,55 @@ function pintarOperaciones() {
       <td class="${u.estado === "win" ? "pos" : u.estado === "loss" ? "neg" : "muted"}">${u.estado === "win" ? "ganada" : u.estado === "loss" ? "perdida" : "abierta"}${u.resultado != null ? ` <span class="num">${Number(u.resultado) >= 0 ? "+" : ""}${Number(u.resultado).toFixed(2)}</span>` : ""}</td></tr>`).join("")}
     </tbody></table></div>`;
 }
+
+const dinero = (v, signo) => `${v < 0 ? "−" : signo && v > 0 ? "+" : ""}$${Math.abs(v).toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" })}`;
+const nombreDia = (dia, corto) => dia === new Date().toLocaleDateString("sv") ? "Hoy" :
+  new Date(dia + "T12:00").toLocaleDateString("es", corto ? { day: "numeric", month: "numeric" } : { weekday: "short", day: "numeric", month: "short" });
+function sumaDia(d) {
+  const r = { dia: d.dia, ganadas: 0, perdidas: 0, ganancia: 0, perdida: 0 };
+  Object.entries(d.por_bot).filter(([n]) => botDia === "todos" || n === botDia).forEach(([, b]) => {
+    r.ganadas += b.ganadas; r.perdidas += b.perdidas; r.ganancia += b.ganancia; r.perdida += b.perdida;
+  });
+  r.lucro = r.ganancia - r.perdida;
+  return r;
+}
+function pintarDias() {
+  const todos = datos.por_dia || [];
+  const bots = [...new Set(todos.flatMap(d => Object.keys(d.por_bot)))];
+  if (botDia !== "todos" && !bots.includes(botDia)) botDia = "todos";
+  const dias = todos.map(sumaDia).filter(d => d.ganadas + d.perdidas);
+  const selector = bots.length > 1 ? `<div class="selector dias-bots">${["todos", ...bots].map(b =>
+    `<button data-bot="${esc(b)}" aria-pressed="${b === botDia}">${b === "todos" ? "Todos los bots" : esc(b)}</button>`).join("")}</div>` : "";
+  if (!dias.length) { $("dias").innerHTML = selector + `<p class="vacio">Todavía no hay operaciones cerradas.</p>`; return; }
+  if (!dias.find(d => d.dia === diaSel)) diaSel = dias[0].dia;
+  const s = dias.find(d => d.dia === diaSel), n = s.ganadas + s.perdidas;
+  const graf = dias.slice(0, 14).reverse(), max = Math.max(...graf.map(d => Math.abs(d.lucro)), 1);
+  const tot = dias.reduce((t, d) => ({ ganadas: t.ganadas + d.ganadas, perdidas: t.perdidas + d.perdidas, ganancia: t.ganancia + d.ganancia,
+    perdida: t.perdida + d.perdida, lucro: t.lucro + d.lucro }), { ganadas: 0, perdidas: 0, ganancia: 0, perdida: 0, lucro: 0 });
+  const clase = v => v > 0 ? "pos" : v < 0 ? "neg" : "muted";
+  $("dias").innerHTML = selector + `<div class="kpis">
+      <div class="kpi"><span>${esc(nombreDia(s.dia))} · ganancia</span><b class="pos">${dinero(s.ganancia, true)}</b><span>${s.ganadas} operaci${s.ganadas === 1 ? "ón ganada" : "ones ganadas"}</span></div>
+      <div class="kpi"><span>${esc(nombreDia(s.dia))} · pérdida</span><b class="neg">${dinero(-s.perdida)}</b><span>${s.perdidas} operaci${s.perdidas === 1 ? "ón perdida" : "ones perdidas"}</span></div>
+      <div class="kpi lucro-final"><span>Lucro final</span><b class="${clase(s.lucro)}">${dinero(s.lucro, true)}</b><span>acierto ${Math.round(s.ganadas / n * 100)}% en ${n} operaciones</span></div>
+    </div>
+    <p class="cuenta"><b class="pos">${dinero(s.ganancia)}</b> ganados − <b class="neg">${dinero(s.perdida)}</b> perdidos = <b class="${clase(s.lucro)}">${dinero(s.lucro, true)}</b> de lucro</p>
+    <div class="dias-graf" role="group" aria-label="Lucro final de cada día">${graf.map(d =>
+      `<button class="dia-col" data-dia="${d.dia}" aria-pressed="${d.dia === diaSel}" title="${esc(nombreDia(d.dia))}: ${dinero(d.lucro, true)}">
+        <div class="zona"><i class="${d.lucro < 0 ? "neg" : "pos"}" style="--h:${Math.abs(d.lucro) / max * 48}%"></i></div>${esc(nombreDia(d.dia, true))}</button>`).join("")}</div>
+    <div class="desliza" style="max-height:340px"><table><thead><tr><th>Día</th><th class="num">Ganadas</th><th class="num">Perdidas</th>
+      <th class="num">Ganancia</th><th class="num">Pérdida</th><th class="num">Lucro final</th></tr></thead><tbody>
+    ${dias.map(d => `<tr data-dia="${d.dia}"${d.dia === diaSel ? ' style="background:rgba(63,210,255,0.08)"' : ""}><td style="white-space:nowrap">${esc(nombreDia(d.dia))}</td>
+      <td class="num">${d.ganadas}</td><td class="num">${d.perdidas}</td><td class="num pos">${dinero(d.ganancia, true)}</td>
+      <td class="num neg">${dinero(-d.perdida)}</td><td class="num ${clase(d.lucro)}"><b>${dinero(d.lucro, true)}</b></td></tr>`).join("")}
+    </tbody><tfoot><tr><td>Total ${dias.length} día${dias.length > 1 ? "s" : ""}</td><td class="num">${tot.ganadas}</td><td class="num">${tot.perdidas}</td>
+      <td class="num pos">${dinero(tot.ganancia, true)}</td><td class="num neg">${dinero(-tot.perdida)}</td>
+      <td class="num ${clase(tot.lucro)}"><b>${dinero(tot.lucro, true)}</b></td></tr></tfoot></table></div>`;
+}
+$("dias").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-bot]"), d = ev.target.closest("[data-dia]");
+  if (b) botDia = b.dataset.bot; else if (d) diaSel = d.dataset.dia; else return;
+  pintarDias();
+});
 
 document.querySelector("#c-memoria thead").addEventListener("click", ev => {
   const th = ev.target.closest("th"); if (!th) return;
