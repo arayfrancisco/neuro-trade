@@ -843,7 +843,9 @@ function pintarNivel2(n) {
   if (!n) return "";
   if (!n.empezado) return `<p class="muted" style="margin:18px 0 0;font-size:13.5px"><b>Nivel II</b> (análisis avanzado y price action): empieza cuando se gradúe de este curso. ${n.etapas.length} etapas con retos de ${n.etapas[0].reto} a ${n.etapas[n.etapas.length - 1].reto} análisis correctos seguidos.</p>`;
   if (n.graduado) return `<p style="margin:18px 0 0"><b>Graduado del nivel II.</b></p>${(n.graduacion && n.graduacion.competencias || []).map(x => `<p class="muted" style="margin:2px 0;font-size:13px">${esc(x)}</p>`).join("")}`;
-  const pct = n.racha / n.reto, acc = n.intentos ? Math.round(n.aciertos / n.intentos * 100) : null;
+  const acc = n.intentos ? Math.round(n.aciertos / n.intentos * 100) : null;
+  if (n.habilidad) return pintarHabilidad(n, acc);
+  const pct = n.racha / n.reto;
   return `
     <p style="margin:20px 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase" class="muted">Nivel II · análisis avanzado</p>
     <div class="etapas">${n.etapas.map(e => { const hecha = n.aprobadas.includes(e.n), actual = e.n === n.etapa;
@@ -852,6 +854,26 @@ function pintarNivel2(n) {
     <p class="muted" style="margin:0 0 8px;font-size:13.5px">Reto: <span class="num">${n.racha}/${n.reto}</span> análisis correctos seguidos · mejor racha <span class="num">${n.mejor_racha}</span> · ${acc === null ? "sin análisis resueltos" : `acierto total <span class="num">${acc}%</span> en ${n.intentos}`} · sin conclusión ${n.sin_conclusion}</p>
     <div class="barra"><i style="left:0;width:${pct * 100}%;background:var(--acento)"></i></div>
     ${n.ejercicio ? `<p class="muted" style="margin:10px 0 0;font-size:13px">Ejercicio resuelto: ${esc(n.ejercicio)}</p>` : `<p class="muted" style="margin:10px 0 0;font-size:13px">Todavía resolviendo el ejercicio de la etapa.</p>`}
+    ${n.abiertos.map(a => `<p style="margin:8px 0 0;font-size:13.5px">🔎 ${esc(a.activo)}: ${esc(a.conclusion)}</p>`).join("")}
+    <ul class="apuntes">${n.historial.map(h => `<li>${h.ok ? "✅" : "✘"} ${esc(h.activo)} · ${esc(h.conclusion)} — ${esc(h.texto)}</li>`).join("")}</ul>`;
+}
+function pintarHabilidad(n, acc) {
+  const h = n.habilidad, l = n.leccion, pc = x => `${Math.round(x * 100)}%`;
+  const pct = l ? (Math.min(h.bien, h.necesita) / h.necesita + Math.min(h.senales, h.pide) / h.pide) / 2 : 0;
+  return `
+    <p style="margin:20px 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase" class="muted">Nivel II · análisis avanzado · reto de habilidad</p>
+    <div class="etapas">${n.etapas.map(e => { const hecha = n.aprobadas.includes(e.n), actual = e.n === n.etapa;
+      return `<button class="etapa ${hecha ? "hecha" : ""} ${actual ? "actual" : ""}" style="--p:${actual ? pct : 0}" aria-label="Nivel II etapa ${e.n}: ${esc(e.titulo)}">${hecha ? "✓" : e.n}</button>`; }).join("")}</div>
+    <p style="margin:0 0 4px;font-size:18px;font-weight:600">Etapa ${n.etapa}: ${esc(n.titulo)}</p>
+    ${l ? `<p class="muted" style="margin:0 0 8px;font-size:13.5px">Lecturas como su tutor: <span class="num">${h.bien}/${h.leidas}</span> (necesita ${h.necesita} de las últimas ${h.meta}) · situaciones con señal: <span class="num">${h.senales_bien}/${h.senales}</span> (necesita ${h.pide}, al ${h.senal_min}%)</p>
+    <div class="barra"><i style="left:0;width:${pct * 100}%;background:var(--acento)"></i></div>
+    <div class="detalle-etapa"><b>👨‍🏫 Lección del tutor: ${esc(l.titulo)}</b><br>
+      ${l.ejemplos.toLocaleString("es")} ejemplos reales de ${l.divisas} divisas${l.nacidas ? ` · le nacieron ${l.nacidas} neuronas estudiando` : ""}.
+      Examen con ejemplos que nunca vio: <b class="num">${pc(l.examen.acierto)}</b>; como en vivo, en ${l.examen.situaciones.toLocaleString("es")} situaciones reales: <b class="num">${pc(l.examen.natural)}</b>; lo volvió a rendir él: <b class="num">${pc(l.examen_cerebro.acierto)}</b>.
+      <ul class="apuntes">${l.explicacion.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+      ${l.utilidad ? `<span>${esc(l.utilidad)}</span>` : ""}</div>`
+      : `<p class="muted" style="margin:0 0 8px;font-size:13.5px">👨‍🏫 Esperando la lección de su tutor para esta etapa: la prepara el entrenador cada 2 horas.</p>`}
+    <p class="muted" style="margin:10px 0 0;font-size:13px">Operaciones demo de la etapa (práctica, no deciden la etapa): ${acc === null ? "todavía ninguna resuelta" : `ganó <span class="num">${n.aciertos}/${n.intentos}</span> (${acc}%)`} · sin conclusión ${n.sin_conclusion}</p>
     ${n.abiertos.map(a => `<p style="margin:8px 0 0;font-size:13.5px">🔎 ${esc(a.activo)}: ${esc(a.conclusion)}</p>`).join("")}
     <ul class="apuntes">${n.historial.map(h => `<li>${h.ok ? "✅" : "✘"} ${esc(h.activo)} · ${esc(h.conclusion)} — ${esc(h.texto)}</li>`).join("")}</ul>`;
 }
