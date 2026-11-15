@@ -333,7 +333,7 @@ footer { text-align: center; color: var(--dim); font-size: 12.5px; padding: 30px
 
     <section class="camara g8" id="c-ops">
       <h2><i data-lucide="activity" class="icono"></i>Operaciones en demo</h2>
-      <p class="intro">Resultados de cada bot. Las operaciones de práctica del curso usan el monto normal. Si pierde 3 seguidas, descansa 15 minutos para estudiar sus errores y practicar sin dinero, y vuelve operando con cuidado.</p>
+      <p class="intro">Resultados de cada bot. Las operaciones de práctica del curso usan el monto normal. Si pierde 3 seguidas, descansa 15 minutos para estudiar sus errores y practicar sin dinero, y vuelve operando con cuidado. Ya graduado, sus prácticas son en papel: no abren operaciones.</p>
       <div id="operaciones"></div>
     </section>
 
@@ -929,9 +929,16 @@ function pintarDescansos() {
   }).join("");
 }
 
+function pintarPapel() {
+  return (datos.papel || []).map(p => `<div class="detalle-etapa" style="margin:0 0 14px"><b>📄 ${esc(p.nombre)}: práctica en papel</b>
+    <span class="muted"> (sin abrir operaciones, calificada con el precio a los 3 minutos)</span><br>
+    ${p.calificadas ? `Ganó <span class="num">${p.ganadas}/${p.calificadas}</span> (<span class="num">${p.acierto}%</span>)${p.empates ? ` · ${p.empates} empates` : ""}` : "Todavía no tiene prácticas calificadas."}
+    ${p.ultimas.length ? `<br><span class="muted">${p.ultimas.map(u => `${esc(u.fecha.slice(6))} ${esc(u.activo)} ${u.direccion === "call" ? "↑" : "↓"} ${esc(u.resultado || "en curso")}`).join(" · ")}</span>` : ""}</div>`).join("");
+}
+
 function pintarOperaciones() {
   const ultimas = datos.operaciones.flatMap(o => o.ultimas.map(u => ({ ...u, bot: o.nombre }))).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 12);
-  $("operaciones").innerHTML = pintarDescansos() + `<div class="kpis" style="margin-bottom:18px">${datos.operaciones.map(o => `
+  $("operaciones").innerHTML = pintarDescansos() + pintarPapel() + `<div class="kpis" style="margin-bottom:18px">${datos.operaciones.map(o => `
       <div class="kpi"><span>${esc(o.nombre)}</span><b>${o.acierto != null ? o.acierto + "%" : "—"}</b>
       <span class="num">${o.ganadas}/${o.cerradas} · <span class="${o.resultado >= 0 ? "pos" : "neg"}">${o.resultado >= 0 ? "+" : ""}$${Number(o.resultado).toFixed(2)}</span></span></div>`).join("")}</div>
     <div class="desliza" style="max-height:300px"><table><thead><tr><th>Hora</th><th>Bot</th><th>Activo</th><th>Dirección</th><th class="num">Monto</th><th>Resultado</th></tr></thead><tbody>
