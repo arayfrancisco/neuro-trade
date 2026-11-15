@@ -333,7 +333,7 @@ footer { text-align: center; color: var(--dim); font-size: 12.5px; padding: 30px
 
     <section class="camara g8" id="c-ops">
       <h2><i data-lucide="activity" class="icono"></i>Operaciones en demo</h2>
-      <p class="intro">Resultados de cada bot. Las operaciones de práctica del curso usan el monto normal.</p>
+      <p class="intro">Resultados de cada bot. Las operaciones de práctica del curso usan el monto normal. Si pierde 3 seguidas, descansa 15 minutos para estudiar sus errores y practicar sin dinero, y vuelve operando con cuidado.</p>
       <div id="operaciones"></div>
     </section>
 
@@ -916,9 +916,22 @@ function pintarKpis(cer) {
     (nac.length ? `<div class="kpi" style="grid-column:1/-1"><span>${nac.map(n => `🌱 ${esc(n.fecha.slice(5, 16).replace("T", " "))} · ${esc(n.motivo)} → ${n.total}`).join("<br>")}</span></div>` : "");
 }
 
+function pintarDescansos() {
+  const icono = { descanso: "🧘", cuidado: "🛡️", normal: "✅" };
+  return (datos.descansos || []).map(d => {
+    const estado = d.estado === "descanso" ? `en descanso de estudio hasta las ${esc(d.hasta)}` :
+      d.estado === "cuidado" ? `operando con cuidado hasta las ${esc(d.hasta)}${d.evitar.length ? ` · evita ${esc(d.evitar.join(", "))}` : ""}` :
+      `operando normal · pérdidas seguidas <span class="num">${d.seguidas}/3</span>`;
+    const papel = d.practica.length ? `<br><span class="muted">Práctica en papel: ${d.practica.map(p => `${esc(p.asset)} ${p.direction === "call" ? "↑" : "↓"} ${p.evitada ? "(evitada) " : ""}${esc(p.resultado)}`).join(" · ")}</span>` : "";
+    return `<div class="detalle-etapa" style="margin:0 0 14px"><b>${icono[d.estado]} ${esc(d.nombre)}: ${estado}</b>
+      ${d.descansos ? `<span class="muted"> · descansos tomados: ${d.descansos}</span>` : ""}
+      ${d.revision && d.estado !== "normal" ? `<br>${esc(d.revision)}` : ""}${d.balance && d.estado === "cuidado" ? `<br>${esc(d.balance)}` : ""}${d.estado !== "normal" ? papel : ""}</div>`;
+  }).join("");
+}
+
 function pintarOperaciones() {
   const ultimas = datos.operaciones.flatMap(o => o.ultimas.map(u => ({ ...u, bot: o.nombre }))).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 12);
-  $("operaciones").innerHTML = `<div class="kpis" style="margin-bottom:18px">${datos.operaciones.map(o => `
+  $("operaciones").innerHTML = pintarDescansos() + `<div class="kpis" style="margin-bottom:18px">${datos.operaciones.map(o => `
       <div class="kpi"><span>${esc(o.nombre)}</span><b>${o.acierto != null ? o.acierto + "%" : "—"}</b>
       <span class="num">${o.ganadas}/${o.cerradas} · <span class="${o.resultado >= 0 ? "pos" : "neg"}">${o.resultado >= 0 ? "+" : ""}$${Number(o.resultado).toFixed(2)}</span></span></div>`).join("")}</div>
     <div class="desliza" style="max-height:300px"><table><thead><tr><th>Hora</th><th>Bot</th><th>Activo</th><th>Dirección</th><th class="num">Monto</th><th>Resultado</th></tr></thead><tbody>
