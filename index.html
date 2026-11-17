@@ -842,7 +842,7 @@ function pintarCurso(cer) {
 function pintarNivel2(n) {
   if (!n) return "";
   if (!n.empezado) return `<p class="muted" style="margin:18px 0 0;font-size:13.5px"><b>Nivel II</b> (análisis avanzado y price action): empieza cuando se gradúe de este curso. ${n.etapas.length} etapas con retos de ${n.etapas[0].reto} a ${n.etapas[n.etapas.length - 1].reto} análisis correctos seguidos.</p>`;
-  if (n.graduado) return `<p style="margin:18px 0 0"><b>Graduado del nivel II.</b></p>${(n.graduacion && n.graduacion.competencias || []).map(x => `<p class="muted" style="margin:2px 0;font-size:13px">${esc(x)}</p>`).join("")}`;
+  if (n.graduado) return `<p style="margin:18px 0 0"><b>Graduado del nivel II.</b></p>${(n.graduacion && n.graduacion.competencias || []).map(x => `<p class="muted" style="margin:2px 0;font-size:13px">${esc(x)}</p>`).join("")}${pintarEntrenamiento(n.entrenamiento || [])}`;
   const acc = n.intentos ? Math.round(n.aciertos / n.intentos * 100) : null;
   if (n.habilidad) return pintarHabilidad(n, acc);
   const pct = n.racha / n.reto;
@@ -857,6 +857,18 @@ function pintarNivel2(n) {
     ${n.abiertos.map(a => `<p style="margin:8px 0 0;font-size:13.5px">🔎 ${esc(a.activo)}: ${esc(a.conclusion)}</p>`).join("")}
     <ul class="apuntes">${n.historial.map(h => `<li>${h.ok ? "✅" : "✘"} ${esc(h.activo)} · ${esc(h.conclusion)} — ${esc(h.texto)}</li>`).join("")}</ul>`;
 }
+function pintarEntrenamiento(ent) {
+  if (!ent.length) return "";
+  const pc = (b, n) => n ? Math.round(b / n * 1000) / 10 : null;
+  const orden = [...ent].sort((a, b) => pc(b.bien, b.leidas) - pc(a.bien, a.leidas));
+  return `<p style="margin:20px 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase" class="muted">Entrenamiento diario de sus habilidades</p>
+    ${orden.map(e => { const p = pc(e.bien, e.leidas);
+      return `<div class="fila"><span class="num">Etapa ${e.etapa}</span><div class="barra"><i style="left:0;width:${p || 0}%;background:${p >= 95 ? "var(--sube)" : p >= 90 ? "var(--acento)" : "var(--baja)"}"></i></div>
+        <span class="num">${p === null ? "—" : p + "%"} <small class="muted">(${e.leidas})</small></span></div>
+        <p class="muted" style="margin:-4px 0 8px;font-size:12.5px">${esc(e.titulo)} · con señal ${e.senales ? `${pc(e.senales_bien, e.senales)}% (${e.senales})` : "—"}${e.refuerzo ? ` · reforzada con su tutor: ${Math.round(e.refuerzo[0] * 1000) / 10}% → ${Math.round(e.refuerzo[1] * 1000) / 10}%` : ""}</p>`; }).join("")}
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px">Lee cada vela real con lo que aprendió y lo compara con la respuesta de su tutor. Si una habilidad baja del 90%, el tutor se la vuelve a enseñar.</p>`;
+}
+
 function pintarHabilidad(n, acc) {
   const h = n.habilidad, l = n.leccion, pc = x => `${Math.round(x * 100)}%`;
   const pct = l ? (Math.min(h.bien, h.necesita) / h.necesita + Math.min(h.senales, h.pide) / h.pide) / 2 : 0;
